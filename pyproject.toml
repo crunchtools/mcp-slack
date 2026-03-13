@@ -1,0 +1,75 @@
+[project]
+name = "mcp-slack-crunchtools"
+version = "0.1.0"
+description = "Secure read-only MCP server for Slack workspaces"
+requires-python = ">=3.10"
+license = "AGPL-3.0-or-later"
+authors = [
+    { name = "crunchtools.com" }
+]
+readme = "README.md"
+keywords = ["mcp", "slack", "fastmcp", "read-only"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "fastmcp>=2.0",
+    "httpx>=0.28",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[project.scripts]
+mcp-slack-crunchtools = "mcp_slack_crunchtools:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcp_slack_crunchtools"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "S", "B", "C4", "DTZ", "T10", "ISC", "PIE", "PT", "RET", "SIM", "TID", "TCH", "ARG", "PLC", "PLE", "PLR", "PLW", "TRY", "RUF"]
+ignore = [
+    "S101",     # assert allowed in tests
+    "TRY003",   # long exception messages ok
+    "PLR0913",  # many arguments ok for tools
+    "PLR2004",  # magic numbers ok (HTTP status codes)
+    "PLW0603",  # global statement ok for singletons
+    "PIE790",   # pass in empty classes ok
+    "PLC0415",  # imports in tests ok
+    "S105",     # hardcoded passwords in tests ok
+    "TID252",   # relative imports in package ok
+    "RUF022",   # __all__ sorted by category, not alphabetically
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "PLC0415", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
