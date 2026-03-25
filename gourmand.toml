@@ -1,0 +1,33 @@
+# Gourmand Configuration
+# AI slop detection for maintaining code quality
+# See https://codeberg.org/mattdm/gourmand for documentation
+
+[global]
+# Paths to exclude from all checks
+excluded_paths = [
+    ".git/**",
+    ".venv/**",
+    ".mypy_cache/**",
+    ".ruff_cache/**",
+    ".pytest_cache/**",
+    ".github/**",
+    "*.egg-info/**",
+    "dist/**",
+    "build/**",
+    "uv.lock",
+]
+
+[checks]
+# False positives on Python: reports "0 related boolean flags" at line 1
+# of every file. Bug in gourmand's Python AST visitor for class definitions.
+# Re-enable when upstream fix lands.
+implicit_state_machine = false
+
+[severity]
+# Override severity levels for specific checks
+# check_name = "warning"  # Options: error, warning, info
+
+[output]
+# Output format options
+format = "text"  # Options: text, json, github
+color = true

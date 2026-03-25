@@ -1,0 +1,64 @@
+name: Feature Request
+description: Suggest a new tool or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve?
+      placeholder: I need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the tool or change you'd like
+      placeholder: |
+        Tool name: `slack_do_something`
+        Slack API method: `conversations.something`
+        Parameters: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Tool Category
+      description: Which area does this feature belong to?
+      options:
+        - Channels
+        - Messages
+        - Users
+        - Files
+        - Auth
+        - New Category
+    validations:
+      required: true
+
+  - type: dropdown
+    id: slack_api
+    attributes:
+      label: Slack API Reference
+      description: Does this correspond to an existing Slack Web API method?
+      options:
+        - "Yes - documented in Slack API docs"
+        - "No - new behavior / aggregation"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information, API docs links, or examples

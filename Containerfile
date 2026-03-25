@@ -23,7 +23,13 @@ LABEL name="mcp-slack-crunchtools" \
       maintainer="crunchtools.com" \
       url="https://github.com/crunchtools/mcp-slack" \
       io.k8s.display-name="MCP Slack CrunchTools" \
-      io.openshift.tags="mcp,slack,read-only"
+      io.openshift.tags="mcp,slack,read-only" \
+      org.opencontainers.image.source="https://github.com/crunchtools/mcp-slack" \
+      org.opencontainers.image.description="Secure read-only MCP server for Slack workspaces" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later"
+
+# Expose HTTP transport port
+EXPOSE 8005
 
 # Set working directory
 WORKDIR /app

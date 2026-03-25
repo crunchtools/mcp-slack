@@ -1,0 +1,41 @@
+# Gourmand Exceptions
+# Documented exceptions for files that legitimately trigger checks
+
+# Summary litter — CLAUDE.md is a standard Claude Code project instructions file
+[[exceptions]]
+check = "summary_litter"
+path = "CLAUDE.md"
+justification = "Claude Code project instructions for AI assistant orientation"
+
+# Primitive obsession — HTTP status codes and response limits are standard API patterns
+[[exceptions]]
+check = "primitive_obsession"
+path = "src/mcp_slack_crunchtools/client.py"
+justification = "HTTP status codes (429) and response size limit (10MB) are standard well-known constants"
+
+[[exceptions]]
+check = "primitive_obsession"
+path = "src/mcp_slack_crunchtools/__init__.py"
+justification = "Port 8005 is the allocated MCP server port for mcp-slack"
+
+# Implicit state machine — error handling dispatches on error codes, not a state machine
+[[exceptions]]
+check = "implicit_state_machine"
+path = "src/mcp_slack_crunchtools/client.py"
+justification = "Error handling dispatches on Slack error codes — standard pattern, not a state machine"
+
+# Implicit state machine — optional parameter builders use simple if-guards
+[[exceptions]]
+check = "implicit_state_machine"
+path = "src/mcp_slack_crunchtools/tools/channels.py"
+justification = "Optional API parameter builders use simple if-guards to add query params, not state machines"
+
+[[exceptions]]
+check = "implicit_state_machine"
+path = "src/mcp_slack_crunchtools/tools/messages.py"
+justification = "Optional API parameter builders use simple if-guards to add query params, not state machines"
+
+[[exceptions]]
+check = "implicit_state_machine"
+path = "src/mcp_slack_crunchtools/tools/users.py"
+justification = "Optional API parameter builders use simple if-guards to add query params, not state machines"

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Slack API Documentation
+    url: https://api.slack.com/methods
+    about: Check the Slack Web API docs for endpoint behavior questions
