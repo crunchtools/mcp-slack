@@ -66,3 +66,5 @@ See [SECURITY.md](SECURITY.md) for the full security design document.
 ## License
 
 AGPL-3.0-or-later
+
+<!-- mcp-name: io.github.crunchtools/slack -->
