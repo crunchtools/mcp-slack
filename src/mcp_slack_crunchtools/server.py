@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # Create the FastMCP server
 mcp = FastMCP(
     name="mcp-slack-crunchtools",
-    version="0.1.0",
+    version="0.1.1",
     instructions="Secure read-only MCP server for Slack workspaces",
 )
 
@@ -200,9 +200,7 @@ async def slack_search_messages(
     Returns:
         Matching messages with total count and pagination info
     """
-    return await search_messages(
-        query=query, sort=sort, sort_dir=sort_dir, count=count, page=page
-    )
+    return await search_messages(query=query, sort=sort, sort_dir=sort_dir, count=count, page=page)
 
 
 @mcp.tool()
