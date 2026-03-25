@@ -48,8 +48,9 @@ jobs:
       - name: Tag and push
         if: github.event_name != 'pull_request'
         run: |
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            docker tag ${{ env.QUAY_IMAGE }}:build "$tag"
+          echo '${{ steps.meta.outputs.tags }}' | while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag "${{ env.QUAY_IMAGE }}:build" "$tag"
             docker push "$tag"
           done
 
@@ -99,7 +100,8 @@ jobs:
 
       - name: Tag and push
         run: |
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            docker tag ${{ env.GHCR_IMAGE }}:build "$tag"
+          echo '${{ steps.meta.outputs.tags }}' | while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker tag "${{ env.GHCR_IMAGE }}:build" "$tag"
             docker push "$tag"
           done
