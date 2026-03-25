@@ -31,6 +31,9 @@ LABEL name="mcp-slack-crunchtools" \
 # Expose HTTP transport port
 EXPOSE 8005
 
+# Hummingbird images use /bin/bash (required for Docker Buildx compatibility)
+SHELL ["/bin/bash", "-c"]
+
 # Set working directory
 WORKDIR /app
 
