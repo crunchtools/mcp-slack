@@ -12,8 +12,8 @@
 #     --env SLACK_USER_TOKEN=xoxp-your-token \
 #     -- podman run -i --rm -e SLACK_USER_TOKEN quay.io/crunchtools/mcp-slack
 
-# Use Hummingbird Python image (Red Hat UBI-based with Python pre-installed)
-FROM quay.io/hummingbird/python:latest
+# Use UBI Minimal with Python — Hummingbird latest is currently broken on Docker runc
+FROM registry.access.redhat.com/ubi9/python-311:latest
 
 # Labels for container metadata
 LABEL name="mcp-slack-crunchtools" \
