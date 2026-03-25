@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # Create the FastMCP server
 mcp = FastMCP(
     name="mcp-slack-crunchtools",
-    version="0.1.1",
+    version="0.1.2",
     instructions="Secure read-only MCP server for Slack workspaces",
 )
 
