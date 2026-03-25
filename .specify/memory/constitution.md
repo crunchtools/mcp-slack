@@ -1,6 +1,6 @@
 # mcp-slack-crunchtools Constitution
 
-> **Version:** 1.0.0
+> **Version:** 1.1.0
 > **Ratified:** 2026-03-25
 > **Status:** Active
 > **Inherits:** [crunchtools/constitution](https://github.com/crunchtools/constitution) v1.0.0
@@ -42,7 +42,8 @@ Every change MUST preserve all five security layers. No exceptions.
 
 **Layer 5 — Supply Chain Security:**
 - Weekly automated CVE scanning via GitHub Actions
-- Hummingbird container base images (minimal CVE surface)
+- Hummingbird distroless FIPS container base images (no shell, no package manager, minimal CVE surface)
+- Multi-stage build: `latest-fips-builder` for compilation, `latest-fips` for runtime
 - Gourmand AI slop detection gating all PRs
 
 ### 2. Two-Layer Tool Architecture
@@ -116,7 +117,7 @@ All code MUST pass Gourmand checks before merge. Zero violations required.
 | MCP Framework | FastMCP | Latest |
 | HTTP Client | httpx | Latest |
 | Validation | Pydantic | v2 |
-| Container Base | Hummingbird | Latest |
+| Container Base | Hummingbird FIPS (distroless) | Latest |
 | Package Manager | uv | Latest |
 | Build System | hatchling | Latest |
 | Linter | ruff | Latest |
@@ -253,3 +254,4 @@ Every code change must pass through these gates in order:
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | 2026-03-25 | Initial constitution |
+| 1.1.0 | 2026-03-25 | Switch to Hummingbird distroless FIPS with multi-stage venv build pattern |

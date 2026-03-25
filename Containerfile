@@ -1,5 +1,9 @@
 # MCP Slack CrunchTools Container
-# Built on Hummingbird Python image (Red Hat UBI-based) for enterprise security
+# Multi-stage build: Hummingbird FIPS builder → distroless FIPS runtime
+#
+# Hummingbird runtime images are distroless (no shell, no package manager).
+# All installation happens in the builder stage via venv, then the venv
+# is copied to the runtime image. No RUN commands in the runtime stage.
 #
 # Build:
 #   podman build -t quay.io/crunchtools/mcp-slack .
@@ -12,17 +16,23 @@
 #     --env SLACK_USER_TOKEN=xoxp-your-token \
 #     -- podman run -i --rm -e SLACK_USER_TOKEN quay.io/crunchtools/mcp-slack
 
-# Hummingbird Python images are broken on Docker runc as of 2026-03-25 rebuild.
-# Using UBI9 Python until Hummingbird fixes the /bin/sh layer issue.
-# Track: all variants (latest, latest-fips, 3.11) fail with
-#   "runc run failed: stat /bin/sh: no such file or directory"
-FROM registry.access.redhat.com/ubi9/python-311:latest
+# Stage 1: Builder (has shell, dnf, build tools)
+FROM quay.io/hummingbird/python:latest-fips-builder AS builder
+USER 0
+WORKDIR /app
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+RUN pip install --no-cache-dir .
 
-# Labels for container metadata
+# Stage 2: Runtime (distroless — no shell, no package manager)
+FROM quay.io/hummingbird/python:latest-fips
+
 LABEL name="mcp-slack-crunchtools" \
       version="0.1.0" \
       summary="Secure read-only MCP server for Slack workspaces" \
-      description="A security-focused read-only MCP server for Slack built on Red Hat UBI" \
+      description="A security-focused read-only MCP server for Slack on Hummingbird FIPS" \
       maintainer="crunchtools.com" \
       url="https://github.com/crunchtools/mcp-slack" \
       io.k8s.display-name="MCP Slack CrunchTools" \
@@ -31,24 +41,10 @@ LABEL name="mcp-slack-crunchtools" \
       org.opencontainers.image.description="Secure read-only MCP server for Slack workspaces" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
-# Expose HTTP transport port
 EXPOSE 8005
-
-# Set working directory
 WORKDIR /app
 
-# Copy project files
-COPY pyproject.toml README.md ./
-COPY src/ ./src/
+COPY --from=builder /app/venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
-# Install the package and dependencies
-RUN pip install --no-cache-dir .
-
-# Verify installation
-RUN python -c "from mcp_slack_crunchtools import main; print('Installation verified')"
-
-# MCP servers run via stdio, so we need interactive mode
-# The entrypoint runs the MCP server
 ENTRYPOINT ["python", "-m", "mcp_slack_crunchtools"]
-
-# No CMD needed - the server reads from stdin and writes to stdout
