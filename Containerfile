@@ -12,8 +12,11 @@
 #     --env SLACK_USER_TOKEN=xoxp-your-token \
 #     -- podman run -i --rm -e SLACK_USER_TOKEN quay.io/crunchtools/mcp-slack
 
-# Use Hummingbird Python image (Red Hat UBI-based with Python pre-installed)
-FROM quay.io/hummingbird/python:latest-fips
+# Hummingbird Python images are broken on Docker runc as of 2026-03-25 rebuild.
+# Using UBI9 Python until Hummingbird fixes the /bin/sh layer issue.
+# Track: all variants (latest, latest-fips, 3.11) fail with
+#   "runc run failed: stat /bin/sh: no such file or directory"
+FROM registry.access.redhat.com/ubi9/python-311:latest
 
 # Labels for container metadata
 LABEL name="mcp-slack-crunchtools" \
