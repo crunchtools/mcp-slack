@@ -1,8 +1,4 @@
-"""Tests for MCP tools.
-
-These tests verify tool behavior without making actual API calls.
-Integration tests with a real Slack workspace should be run separately.
-"""
+"""Tests for MCP tool registration and imports."""
 
 import os
 
@@ -39,7 +35,6 @@ class TestToolRegistration:
             search_messages,
         )
 
-        # Verify all functions are callable
         assert callable(auth_test)
         assert callable(list_channels)
         assert callable(get_channel_info)

@@ -1,12 +1,4 @@
-"""Secure configuration handling.
-
-This module handles all configuration including the sensitive Slack tokens.
-Tokens are stored as SecretStr to prevent accidental logging.
-
-Supports two authentication modes:
-  1. OAuth App Token: SLACK_USER_TOKEN (xoxp-) - requires workspace admin approval
-  2. Cookie Auth: SLACK_COOKIE_TOKEN (xoxc-) + SLACK_COOKIE_D (xoxd-) - uses browser session
-"""
+"""Secure configuration handling with SecretStr credential storage."""
 
 import logging
 import os
@@ -27,11 +19,6 @@ class Config:
     """
 
     def __init__(self) -> None:
-        """Initialize configuration from environment variables.
-
-        Raises:
-            ConfigurationError: If required environment variables are missing.
-        """
         oauth_token = os.environ.get("SLACK_USER_TOKEN")
         cookie_token = os.environ.get("SLACK_COOKIE_TOKEN")
         cookie_d = os.environ.get("SLACK_COOKIE_D")
@@ -41,22 +28,26 @@ class Config:
             self._cookie_d: SecretStr | None = None
             self._auth_mode = "oauth"
             logger.info("Configuration loaded (OAuth token mode)")
-        elif cookie_token and cookie_d:
+            return
+
+        if cookie_token and cookie_d:
             self._token = SecretStr(cookie_token)
             self._cookie_d = SecretStr(cookie_d)
             self._auth_mode = "cookie"
             logger.info("Configuration loaded (cookie auth mode)")
-        elif cookie_token and not cookie_d:
+            return
+
+        if cookie_token:
             raise ConfigurationError(
                 "SLACK_COOKIE_D environment variable required when using SLACK_COOKIE_TOKEN. "
                 "Extract the 'd' cookie value from your browser's Slack session."
             )
-        else:
-            raise ConfigurationError(
-                "Slack authentication required. Set one of:\n"
-                "  - SLACK_USER_TOKEN (xoxp-...) for OAuth app token\n"
-                "  - SLACK_COOKIE_TOKEN (xoxc-...) + SLACK_COOKIE_D (xoxd-...) for cookie auth"
-            )
+
+        raise ConfigurationError(
+            "Slack authentication required. Set one of:\n"
+            "  - SLACK_USER_TOKEN (xoxp-...) for OAuth app token\n"
+            "  - SLACK_COOKIE_TOKEN (xoxc-...) + SLACK_COOKIE_D (xoxd-...) for cookie auth"
+        )
 
     @property
     def token(self) -> str:
@@ -77,10 +68,7 @@ class Config:
 
     @property
     def api_base_url(self) -> str:
-        """Hardcoded Slack API base URL.
-
-        This is intentionally not configurable to prevent SSRF attacks.
-        """
+        """Hardcoded to prevent SSRF — not configurable by design."""
         return "https://slack.com/api"
 
     def __repr__(self) -> str:
@@ -92,7 +80,6 @@ class Config:
         return f"Config(mode={self._auth_mode}, token=***)"
 
 
-# Global configuration instance - initialized on first import
 _config: Config | None = None
 
 

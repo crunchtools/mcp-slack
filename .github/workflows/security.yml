@@ -105,7 +105,7 @@ jobs:
 
       - name: Build container image
         run: |
-          podman build -t mcp-slack:scan .
+          docker build -f Containerfile -t mcp-slack:scan .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

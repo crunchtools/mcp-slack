@@ -1,7 +1,4 @@
-"""FastMCP server setup for Slack MCP.
-
-This module creates and configures the MCP server with all read-only tools.
-"""
+"""FastMCP server with read-only Slack tools."""
 
 import logging
 from typing import Any
@@ -28,15 +25,11 @@ from .tools import (
 
 logger = logging.getLogger(__name__)
 
-# Create the FastMCP server
 mcp = FastMCP(
     name="mcp-slack-crunchtools",
     version="0.1.2",
     instructions="Secure read-only MCP server for Slack workspaces",
 )
-
-
-# Auth tool
 
 
 @mcp.tool()
@@ -47,9 +40,6 @@ async def slack_auth_test() -> dict[str, Any]:
     Use this to verify the connection is working.
     """
     return await auth_test()
-
-
-# Channel tools
 
 
 @mcp.tool()
@@ -174,9 +164,6 @@ async def slack_list_channel_members(
     return await list_channel_members(channel_id=channel_id, limit=limit, cursor=cursor)
 
 
-# Message tools
-
-
 @mcp.tool()
 async def slack_search_messages(
     query: str,
@@ -262,9 +249,6 @@ async def slack_list_stars(
     return await list_stars(count=count, page=page, cursor=cursor)
 
 
-# User tools
-
-
 @mcp.tool()
 async def slack_get_user_info(user_id: str) -> dict[str, Any]:
     """Get information about a Slack user.
@@ -310,9 +294,6 @@ async def slack_get_user_profile(
         User profile with display name, status, image URLs, custom fields
     """
     return await get_user_profile(user_id=user_id, include_labels=include_labels)
-
-
-# File tools
 
 
 @mcp.tool()

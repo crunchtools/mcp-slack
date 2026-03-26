@@ -1,8 +1,4 @@
-"""Slack MCP tools.
-
-This package contains all the MCP tool implementations for Slack operations.
-All tools are read-only.
-"""
+"""Read-only Slack MCP tool implementations."""
 
 from .channels import (
     get_channel_history,
@@ -27,24 +23,19 @@ from .users import (
 )
 
 __all__ = [
-    # Auth
     "auth_test",
-    # Channels
     "list_channels",
     "get_channel_info",
     "get_channel_history",
     "get_thread_replies",
     "list_channel_members",
-    # Messages
     "search_messages",
     "get_reactions",
     "list_reactions",
     "list_stars",
-    # Users
     "get_user_info",
     "list_users",
     "get_user_profile",
-    # Files
     "list_files",
     "get_file_info",
 ]
