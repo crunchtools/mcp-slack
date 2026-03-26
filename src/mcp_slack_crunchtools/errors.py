@@ -6,6 +6,8 @@ Internal errors should be caught and converted to UserError before propagating.
 
 import os
 
+MAX_SAFE_ID_LENGTH = 20
+
 
 class UserError(Exception):
     """Base class for safe errors that can be shown to users.
@@ -66,7 +68,8 @@ class ChannelNotFoundError(UserError):
     """Channel not found or not accessible."""
 
     def __init__(self, identifier: str) -> None:
-        safe_id = identifier[:20] + "..." if len(identifier) > 20 else identifier
+        truncated = len(identifier) > MAX_SAFE_ID_LENGTH
+        safe_id = identifier[:MAX_SAFE_ID_LENGTH] + "..." if truncated else identifier
         super().__init__(f"Channel not found or not accessible: {safe_id}")
 
 
@@ -74,7 +77,8 @@ class UserNotFoundError(UserError):
     """User not found."""
 
     def __init__(self, identifier: str) -> None:
-        safe_id = identifier[:20] + "..." if len(identifier) > 20 else identifier
+        truncated = len(identifier) > MAX_SAFE_ID_LENGTH
+        safe_id = identifier[:MAX_SAFE_ID_LENGTH] + "..." if truncated else identifier
         super().__init__(f"User not found: {safe_id}")
 
 

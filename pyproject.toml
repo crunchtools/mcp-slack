@@ -47,7 +47,7 @@ line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "S", "B", "C4", "DTZ", "T10", "ISC", "PIE", "PT", "RET", "SIM", "TID", "TCH", "ARG", "PLC", "PLE", "PLR", "PLW", "TRY", "RUF"]
+select = ["E", "F", "I", "N", "W", "UP", "S", "B", "C4", "C901", "DTZ", "T10", "ISC", "PIE", "PT", "RET", "SIM", "TID", "TCH", "ARG", "PLC", "PLE", "PLR", "PLW", "TRY", "RUF"]
 ignore = [
     "S101",     # assert allowed in tests
     "TRY003",   # long exception messages ok
@@ -60,6 +60,10 @@ ignore = [
     "TID252",   # relative imports in package ok
     "RUF022",   # __all__ sorted by category, not alphabetically
 ]
+
+[tool.ruff.lint.pylint]
+max-branches = 10
+max-statements = 50
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S105", "PLC0415", "PLR2004"]

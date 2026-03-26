@@ -1,19 +1,7 @@
-"""Pydantic models for input validation.
-
-All tool inputs are validated through these models to prevent injection attacks
-and ensure data integrity before making API calls.
-
-Slack ID formats:
-- Channel: C + 8+ alphanumeric (public), G + 8+ (private/group), D + 8+ (DM)
-- User: U + 8+ alphanumeric, W + 8+ (enterprise grid), B + 8+ (bot)
-- Team: T + 8+ alphanumeric
-- File: F + 8+ alphanumeric
-- Timestamp: digits.digits (e.g., 1234567890.123456)
-"""
+"""Input validation for Slack resource identifiers."""
 
 import re
 
-# Regex patterns for Slack ID validation
 CHANNEL_ID_PATTERN = re.compile(r"^[CDG][A-Z0-9]{8,}$")
 USER_ID_PATTERN = re.compile(r"^[UWB][A-Z0-9]{8,}$")
 TEAM_ID_PATTERN = re.compile(r"^T[A-Z0-9]{8,}$")

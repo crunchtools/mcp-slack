@@ -1,6 +1,6 @@
 # mcp-slack-crunchtools Constitution
 
-> **Version:** 1.1.0
+> **Version:** 1.2.0
 > **Ratified:** 2026-03-25
 > **Status:** Active
 > **Inherits:** [crunchtools/constitution](https://github.com/crunchtools/constitution) v1.0.0
@@ -127,7 +127,18 @@ All code MUST pass Gourmand checks before merge. Zero violations required.
 
 ---
 
-## III. Testing Standards
+## III. Containerfile Conventions
+
+The container uses a multi-stage Hummingbird FIPS build:
+
+1. **Builder stage** (`quay.io/hummingbird/python:latest-fips-builder`) — has shell, dnf, build tools. Creates a Python venv and installs all dependencies.
+2. **Runtime stage** (`quay.io/hummingbird/python:latest-fips`) — distroless, no shell, no package manager. The venv is copied from the builder. No `RUN` commands in this stage.
+
+Builder and runtime MUST be from the same Hummingbird ecosystem. Never mix with UBI, Fedora, or Alpine base images.
+
+---
+
+## IV. Testing Standards
 
 ### Mocked API Tests (MANDATORY)
 
@@ -156,7 +167,7 @@ Every Pydantic model in `models.py` MUST have tests in `test_validation.py`:
 
 ---
 
-## IV. Gourmand (AI Slop Detection)
+## V. Gourmand (AI Slop Detection)
 
 All code MUST pass `gourmand --full .` with **zero violations** before merge. Gourmand is a CI gate in GitHub Actions.
 
@@ -180,7 +191,7 @@ Unacceptable reasons:
 
 ---
 
-## V. Code Quality Gates
+## VI. Code Quality Gates
 
 Every code change must pass through these gates in order:
 
@@ -203,7 +214,7 @@ Every code change must pass through these gates in order:
 
 ---
 
-## VI. Naming Conventions
+## VII. Naming Conventions
 
 | Context | Name |
 |---------|------|
@@ -218,7 +229,7 @@ Every code change must pass through these gates in order:
 
 ---
 
-## VII. Development Workflow
+## VIII. Development Workflow
 
 ### Adding a New Tool
 
@@ -240,7 +251,7 @@ Every code change must pass through these gates in order:
 
 ---
 
-## VIII. Governance
+## IX. Governance
 
 ### Amendment Process
 
@@ -255,3 +266,4 @@ Every code change must pass through these gates in order:
 |---------|------|---------|
 | 1.0.0 | 2026-03-25 | Initial constitution |
 | 1.1.0 | 2026-03-25 | Switch to Hummingbird distroless FIPS with multi-stage venv build pattern |
+| 1.2.0 | 2026-03-25 | Add Section III (Containerfile Conventions), renumber to match parent profile |
