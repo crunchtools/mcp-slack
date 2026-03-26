@@ -88,6 +88,9 @@ uv.lock
 .envrc
 .direnv/
 
+# MCP Registry tokens
+.mcpregistry_*
+
 # OS files
 .DS_Store
 Thumbs.db
