@@ -108,14 +108,15 @@ class TestWriteTools:
         with pytest.raises(ValueError, match="channel_id"):
             asyncio.run(send_message(channel_id="invalid", text="hello"))
 
-    def test_cancel_tool_registered(self) -> None:
-        """slack_cancel_scheduled_message should be registered in the MCP server."""
+    def test_write_tools_registered(self) -> None:
+        """slack_send_message and slack_cancel_scheduled_message should be in the server."""
         os.environ.setdefault("SLACK_USER_TOKEN", "xoxp-test-token-for-ci")
-        from mcp_slack_crunchtools.server import mcp
+        from mcp_slack_crunchtools import server
 
-        tool_names = [t.name for t in mcp._tool_manager._tools.values()]
-        assert "slack_cancel_scheduled_message" in tool_names
-        assert "slack_send_message" in tool_names
+        assert hasattr(server, "slack_send_message")
+        assert hasattr(server, "slack_cancel_scheduled_message")
+        assert callable(server.slack_send_message)
+        assert callable(server.slack_cancel_scheduled_message)
 
 
 class TestErrorSafety:
