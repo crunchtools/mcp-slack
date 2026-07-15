@@ -19,6 +19,7 @@ class TestToolRegistration:
         """All tool functions should be importable."""
         from mcp_slack_crunchtools.tools import (
             auth_test,
+            cancel_scheduled_message,
             get_channel_history,
             get_channel_info,
             get_file_info,
@@ -33,6 +34,7 @@ class TestToolRegistration:
             list_stars,
             list_users,
             search_messages,
+            send_message,
         )
 
         assert callable(auth_test)
@@ -50,12 +52,70 @@ class TestToolRegistration:
         assert callable(get_user_profile)
         assert callable(list_files)
         assert callable(get_file_info)
+        assert callable(send_message)
+        assert callable(cancel_scheduled_message)
 
     def test_tool_count(self) -> None:
-        """Should have exactly 15 tool functions exported."""
+        """Should have exactly 17 tool functions exported."""
         from mcp_slack_crunchtools.tools import __all__
 
-        assert len(__all__) == 15
+        assert len(__all__) == 17
+
+
+class TestWriteTools:
+    """Tests for scheduled messaging tools."""
+
+    def test_delay_default(self) -> None:
+        """Default delay should be 180 seconds (3 minutes)."""
+        import mcp_slack_crunchtools.tools.write as write_module
+
+        token = os.environ.pop("SLACK_ADD_MESSAGE_DELAY", None)
+        try:
+            assert write_module._get_delay_seconds() == 180
+        finally:
+            if token is not None:
+                os.environ["SLACK_ADD_MESSAGE_DELAY"] = token
+
+    def test_delay_zero_disables_scheduling(self) -> None:
+        """SLACK_ADD_MESSAGE_DELAY=0 or 0s should return 0."""
+        import mcp_slack_crunchtools.tools.write as write_module
+
+        for value in ("0", "0s"):
+            os.environ["SLACK_ADD_MESSAGE_DELAY"] = value
+            try:
+                assert write_module._get_delay_seconds() == 0
+            finally:
+                del os.environ["SLACK_ADD_MESSAGE_DELAY"]
+
+    def test_delay_custom_values(self) -> None:
+        """Custom duration strings should parse correctly."""
+        import mcp_slack_crunchtools.tools.write as write_module
+
+        cases = [("5m", 300), ("30s", 30), ("1h", 3600), ("120", 120)]
+        for raw, expected in cases:
+            os.environ["SLACK_ADD_MESSAGE_DELAY"] = raw
+            try:
+                assert write_module._get_delay_seconds() == expected, f"failed for {raw!r}"
+            finally:
+                del os.environ["SLACK_ADD_MESSAGE_DELAY"]
+
+    def test_send_message_invalid_channel(self) -> None:
+        """send_message should raise on an invalid channel_id."""
+        import asyncio
+
+        from mcp_slack_crunchtools.tools.write import send_message
+
+        with pytest.raises(ValueError, match="channel_id"):
+            asyncio.run(send_message(channel_id="invalid", text="hello"))
+
+    def test_cancel_tool_registered(self) -> None:
+        """slack_cancel_scheduled_message should be registered in the MCP server."""
+        os.environ.setdefault("SLACK_USER_TOKEN", "xoxp-test-token-for-ci")
+        from mcp_slack_crunchtools.server import mcp
+
+        tool_names = [t.name for t in mcp._tool_manager._tools.values()]
+        assert "slack_cancel_scheduled_message" in tool_names
+        assert "slack_send_message" in tool_names
 
 
 class TestErrorSafety:
