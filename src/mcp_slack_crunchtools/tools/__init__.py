@@ -1,4 +1,4 @@
-"""Read-only Slack MCP tool implementations."""
+"""Slack MCP tool implementations."""
 
 from .channels import (
     get_channel_history,
@@ -21,6 +21,7 @@ from .users import (
     list_files,
     list_users,
 )
+from .write import cancel_scheduled_message, send_message
 
 __all__ = [
     "auth_test",
@@ -38,4 +39,6 @@ __all__ = [
     "get_user_profile",
     "list_files",
     "get_file_info",
+    "send_message",
+    "cancel_scheduled_message",
 ]

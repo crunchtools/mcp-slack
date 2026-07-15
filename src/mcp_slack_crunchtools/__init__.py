@@ -1,10 +1,10 @@
-"""MCP Slack CrunchTools - Secure read-only MCP server for Slack."""
+"""MCP Slack CrunchTools - Secure MCP server for Slack."""
 
 import argparse
 
 from .server import mcp
 
-__version__ = "0.1.3"
+__version__ = "0.2.0"
 __all__ = ["main", "mcp"]
 
 

@@ -1,4 +1,4 @@
-"""FastMCP server with read-only Slack tools."""
+"""FastMCP server with Slack tools."""
 
 import logging
 from typing import Any
@@ -7,6 +7,7 @@ from fastmcp import FastMCP
 
 from .tools import (
     auth_test,
+    cancel_scheduled_message,
     get_channel_history,
     get_channel_info,
     get_file_info,
@@ -21,14 +22,15 @@ from .tools import (
     list_stars,
     list_users,
     search_messages,
+    send_message,
 )
 
 logger = logging.getLogger(__name__)
 
 mcp = FastMCP(
     name="mcp-slack-crunchtools",
-    version="0.1.3",
-    instructions="Secure read-only MCP server for Slack workspaces",
+    version="0.2.0",
+    instructions="Secure MCP server for Slack workspaces",
 )
 
 
@@ -348,3 +350,46 @@ async def slack_get_file_info(
         File metadata, comments, and pagination info
     """
     return await get_file_info(file_id=file_id, count=count, page=page)
+
+
+@mcp.tool()
+async def slack_send_message(
+    channel_id: str,
+    text: str,
+    thread_ts: str | None = None,
+) -> dict[str, Any]:
+    """Send or schedule a Slack message.
+
+    When SLACK_ADD_MESSAGE_DELAY is set (default: 3m), the message is scheduled
+    via chat.scheduleMessage, giving a cancellation window before delivery.
+    Use slack_cancel_scheduled_message with the returned scheduled_message_id
+    to cancel. Set SLACK_ADD_MESSAGE_DELAY=0 to post immediately.
+
+    Args:
+        channel_id: Channel ID (starts with C, D, or G)
+        text: Message text (Markdown supported)
+        thread_ts: Parent message timestamp to reply in-thread
+
+    Returns:
+        scheduled_message_id + post_at (if scheduled) or ts (if immediate)
+    """
+    return await send_message(channel_id=channel_id, text=text, thread_ts=thread_ts)
+
+
+@mcp.tool()
+async def slack_cancel_scheduled_message(
+    channel_id: str,
+    scheduled_message_id: str,
+) -> dict[str, Any]:
+    """Cancel a scheduled Slack message before it sends.
+
+    Args:
+        channel_id: Channel ID the message was scheduled in
+        scheduled_message_id: The scheduled_message_id returned by slack_send_message
+
+    Returns:
+        Confirmation with scheduled_message_id
+    """
+    return await cancel_scheduled_message(
+        channel_id=channel_id, scheduled_message_id=scheduled_message_id
+    )
