@@ -11,3 +11,18 @@ justification = "Claude Code project instructions for AI assistant orientation"
 check = "primitive_obsession"
 path = "src/mcp_slack_crunchtools/__init__.py"
 justification = "Port 8005 is the allocated MCP server port for mcp-slack"
+
+[[exceptions]]
+check = "copy_paste_detection"
+path = "src/mcp_slack_crunchtools/models.py"
+justification = "Five validators for Slack's five ID namespaces (channel, user, team, file, timestamp). Each has its own regex and its own message naming the expected prefix, which is what makes the error useful. They share only the match-then-raise shape."
+
+[[exceptions]]
+check = "copy_paste_detection"
+path = "src/mcp_slack_crunchtools/errors.py"
+justification = "ChannelNotFoundError and UserNotFoundError differ only in the message, which is the entire point of having two classes rather than one."
+
+[[exceptions]]
+check = "copy_paste_detection"
+path = "src/mcp_slack_crunchtools/client.py"
+justification = "get_client and get_config are both the four-line lazy-singleton accessor: check the module global, construct if None, return. The duplication is the idiom; hiding it behind a generic obscures which global is being initialised."
