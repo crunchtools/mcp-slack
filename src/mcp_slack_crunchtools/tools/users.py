@@ -6,7 +6,7 @@ Tools for authentication testing, user info, profiles, and file metadata.
 from typing import Any
 
 from ..client import get_client
-from ..models import validate_file_id, validate_user_id
+from ..models import validate_channel_id, validate_file_id, validate_user_id
 
 
 async def auth_test() -> dict[str, Any]:
@@ -132,8 +132,6 @@ async def list_files(
     }
 
     if channel_id:
-        from ..models import validate_channel_id
-
         channel_id = validate_channel_id(channel_id)
         params["channel"] = channel_id
     if user_id:

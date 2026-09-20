@@ -49,15 +49,11 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "S", "B", "C4", "C901", "DTZ", "T10", "ISC", "PIE", "PT", "RET", "SIM", "TID", "TCH", "ARG", "PLC", "PLE", "PLR", "PLW", "TRY", "RUF"]
 ignore = [
-    "S101",     # assert allowed in tests
     "TRY003",   # long exception messages ok
     "PLR0913",  # many arguments ok for tools
     "PLR0917",  # ditto, positional: MCP tool signatures mirror the wire API
-    "PLR2004",  # magic numbers ok (HTTP status codes)
     "PLW0603",  # global statement ok for singletons
     "PIE790",   # pass in empty classes ok
-    "PLC0415",  # imports in tests ok
-    "S105",     # hardcoded passwords in tests ok
     "TID252",   # relative imports in package ok
     "RUF022",   # __all__ sorted by category, not alphabetically
 ]
@@ -66,8 +62,14 @@ ignore = [
 max-branches = 10
 max-statements = 50
 
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S105", "PLC0415", "PLR2004"]
+# These four were previously ignored project-wide with comments saying they
+# were "ok in tests" — three of them were already listed here as well. Scoping
+# them to tests/ is what those comments actually meant.
+"tests/*" = ["S101", "S105", "PLC0415", "PLR2004"]
 
 [tool.mypy]
 python_version = "3.10"
