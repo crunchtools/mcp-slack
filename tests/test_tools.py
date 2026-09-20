@@ -1,5 +1,6 @@
 """Tests for MCP tool registration and imports."""
 
+import asyncio
 import os
 
 import pytest
@@ -101,8 +102,6 @@ class TestWriteTools:
 
     def test_send_message_invalid_channel(self) -> None:
         """send_message should raise on an invalid channel_id."""
-        import asyncio
-
         from mcp_slack_crunchtools.tools.write import send_message
 
         with pytest.raises(ValueError, match="channel_id"):

@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024
 REQUEST_TIMEOUT = 30.0
+HTTP_TOO_MANY_REQUESTS = 429
 
 _ERROR_MAP: dict[str, type[Exception]] = {
     "not_authed": PermissionDeniedError,
@@ -116,7 +117,7 @@ class SlackClient:
         except httpx.RequestError as e:
             raise SlackApiError("request_error", f"Request failed: {e}") from e
 
-        if response.status_code == 429:
+        if response.status_code == HTTP_TOO_MANY_REQUESTS:
             retry_after = response.headers.get("Retry-After")
             raise RateLimitError(int(retry_after) if retry_after else None)
 

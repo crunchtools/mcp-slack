@@ -7,22 +7,79 @@ path = "CLAUDE.md"
 justification = "Claude Code project instructions for AI assistant orientation"
 
 # Primitive obsession — port 8005 is the allocated MCP server port
+classification = "by_design"
+
 [[exceptions]]
 check = "primitive_obsession"
 path = "src/mcp_slack_crunchtools/__init__.py"
 justification = "Port 8005 is the allocated MCP server port for mcp-slack"
+classification = "by_design"
 
 [[exceptions]]
 check = "copy_paste_detection"
 path = "src/mcp_slack_crunchtools/models.py"
 justification = "Five validators for Slack's five ID namespaces (channel, user, team, file, timestamp). Each has its own regex and its own message naming the expected prefix, which is what makes the error useful. They share only the match-then-raise shape."
+classification = "by_design"
 
 [[exceptions]]
 check = "copy_paste_detection"
 path = "src/mcp_slack_crunchtools/errors.py"
 justification = "ChannelNotFoundError and UserNotFoundError differ only in the message, which is the entire point of having two classes rather than one."
+classification = "by_design"
 
 [[exceptions]]
 check = "copy_paste_detection"
 path = "src/mcp_slack_crunchtools/client.py"
 justification = "get_client and get_config are both the four-line lazy-singleton accessor: check the module global, construct if None, return. The duplication is the idiom; hiding it behind a generic obscures which global is being initialised."
+classification = "by_design"
+
+# Hidden env config — EV013 has no documentation-detection mechanism; it matches
+# names against a fixed allowlist and nothing else. These entries are the record
+# that each variable was reviewed and written down in README.md's Configuration
+# section, which is the outcome the check exists to force.
+
+[[exceptions]]
+check = "hidden_env_config"
+path = "src/mcp_slack_crunchtools/config.py"
+justification = "SLACK_USER_TOKEN, SLACK_COOKIE_TOKEN and SLACK_COOKIE_D are the two supported authentication modes, not hidden toggles. All three are documented in README.md under Configuration, including which mode each belongs to and why cookie mode is the working path where no Slack app can be installed. Credentials cannot be passed on the CLI without landing in the process table and shell history, so the environment is the correct channel for them."
+classification = "by_design"
+
+[[exceptions]]
+check = "hidden_env_config"
+path = "src/mcp_slack_crunchtools/tools/write.py"
+justification = "SLACK_ADD_MESSAGE_DELAY controls how far ahead outgoing messages are scheduled, giving a cancellation window before a message actually posts. Documented in README.md under Configuration with its real default (3m), its duration-string format, and the values that disable scheduling."
+classification = "by_design"
+
+[[exceptions]]
+check = "hidden_env_config"
+path = "tests/test_tools.py"
+justification = "Tests set SLACK_USER_TOKEN and SLACK_ADD_MESSAGE_DELAY to exercise the config loader and the duration parser. These are test fixtures constructing a known environment, not user-facing configuration, so they belong in no README."
+classification = "by_design"
+
+# Single-use helpers — both are named seams rather than fake modularity.
+
+[[exceptions]]
+check = "single_use_helpers"
+path = "src/mcp_slack_crunchtools/client.py"
+justification = "_handle_slack_error is the whole Slack error taxonomy — six error classes, two of which read extra fields off the response body. Inlining it into _request would bury the happy path under error dispatch. Called once because there is one place a Slack response is judged, which is the point."
+classification = "by_design"
+
+[[exceptions]]
+check = "single_use_helpers"
+path = "src/mcp_slack_crunchtools/tools/write.py"
+justification = "_get_delay_seconds parses a duration string with four suffix forms and five disable spellings. It is extracted because it is unit-tested directly in tests/test_tools.py — tests call write_module._get_delay_seconds() across a table of inputs. Inlining it would make that parser untestable."
+classification = "by_design"
+
+# Manifest lint suppression — REAL ACCEPTED DEBT, deliberately not by_design.
+# Four ignores that said "ok in tests" were applied project-wide and have been
+# scoped to tests/ in this change; three genuine defects they were masking are
+# fixed here (two function-local imports hoisted, one magic 429 named). The
+# seven that remain are blanket and have had no line-by-line review. They are
+# classified accepted_bad_taste so they count against this repo's score and stay
+# visible until a fleet-wide ruff policy decision is made.
+
+[[exceptions]]
+check = "manifest_lint_suppression"
+path = "pyproject.toml"
+justification = "Seven project-wide ruff ignores plus four test-scoped ones. Each carries a one-line rationale but none has been audited against current code. Pending a fleet-wide ruff policy decision (RT #1482); tracked as accepted debt rather than justified design so it keeps counting against the score."
+classification = "accepted_bad_taste"

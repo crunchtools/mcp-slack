@@ -6,7 +6,7 @@ Tools for searching messages, listing reactions, and starred items.
 from typing import Any
 
 from ..client import get_client
-from ..models import validate_channel_id, validate_timestamp
+from ..models import validate_channel_id, validate_timestamp, validate_user_id
 
 
 async def search_messages(
@@ -104,8 +104,6 @@ async def list_reactions(
         "page": max(page, 1),
     }
     if user_id:
-        from ..models import validate_user_id
-
         user_id = validate_user_id(user_id)
         params["user"] = user_id
     if full:
