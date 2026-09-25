@@ -1,21 +1,8 @@
 # Gourmand Configuration
 # AI slop detection for maintaining code quality
 # See https://gitlab.com/mattdm/gourmand for documentation
-
-[global]
-# Paths to exclude from all checks
-excluded_paths = [
-    ".git/**",
-    ".venv/**",
-    ".mypy_cache/**",
-    ".ruff_cache/**",
-    ".pytest_cache/**",
-    ".github/**",
-    "*.egg-info/**",
-    "dist/**",
-    "build/**",
-    "uv.lock",
-]
+# Path exclusions: Gourmand ignores [global] excluded_paths in this file.
+# Use .gitignore, or .gourmand-exceptions.d/globals.toml for tracked paths.
 
 [severity]
 # Override severity levels for specific checks
