@@ -1,269 +1,63 @@
 # mcp-slack-crunchtools Constitution
 
-> **Version:** 1.2.1
+> **Version:** 1.3.0
 > **Ratified:** 2026-03-25
+> **Amended:** 2026-10-02
 > **Status:** Active
-> **Inherits:** [crunchtools/constitution](https://github.com/crunchtools/constitution) v1.17.0
+> **Inherits:** [crunchtools/constitution](https://github.com/crunchtools/constitution) v1.18.0
 > **Profile:** MCP Server
 
-This constitution establishes the core principles, constraints, and workflows that govern all development on mcp-slack-crunchtools.
+This file holds what is specific to mcp-slack. The fleet rules and the MCP
+Server profile (five-layer security model, two-layer tools, distribution
+channels, transport modes, quality gates, Gourmand) apply at the inherited
+version and are checked against this repo's files by `constitution.yml`. They
+are not restated here.
 
----
+## Security Model Specifics
 
-## I. Core Principles
+- **Credentials:** two modes, each `SecretStr`, environment-only and scrubbed
+  from `SlackApiError` messages and `Config` `repr()`/`str()`:
 
-### 1. Five-Layer Security Model
+  | Mode | Variables | Transport |
+  |------|-----------|-----------|
+  | User OAuth token | `SLACK_USER_TOKEN` (`xoxp-`) | `Authorization: Bearer` header |
+  | Cookie auth | `SLACK_COOKIE_TOKEN` (`xoxc-`) + `SLACK_COOKIE_D` (`xoxd-`) | Bearer header plus `Cookie: d=` header |
 
-Every change MUST preserve all five security layers. No exceptions.
+  The user OAuth token is preferred whenever a Slack app can be installed.
+- **Input limits:** channel and user IDs are validated against injection
+  patterns; channel types and sort orders come from allowlists.
+- **API:** the Slack API base URL (`https://slack.com/api`) is hardcoded,
+  which prevents SSRF. Credentials never travel in a URL. Responses above
+  10 MB are rejected and requests time out.
+- **Surface:** no filesystem access, shell execution or code evaluation.
 
-**Layer 1 — Token Protection:**
-- API credentials stored as `SecretStr` (never logged or exposed)
-- Environment-variable-only storage
-- Automatic scrubbing from error messages
-- Two auth modes: User OAuth Token (xoxp-) and Cookie Auth (xoxc- + xoxd-)
+## Write Surface
 
-**Layer 2 — Input Validation:**
-- Pydantic models enforce strict data types with `extra="forbid"`
-- Allowlists for permitted values (channel types, sort orders)
-- Channel/user IDs validated against injection patterns
+The server reads Slack, and posts only messages. The only write tools are
+`slack_send_message` and `slack_cancel_scheduled_message`; no tool edits or
+deletes Slack data.
 
-**Layer 3 — API Hardening:**
-- Auth via `Authorization: Bearer` header (never in URL)
-- Cookie auth via `Cookie: d=` header when using xoxc- tokens
-- Hardcoded Slack API base URL (prevents SSRF)
-- Mandatory TLS certificate validation (httpx default)
-- Request timeouts and response size limits
+Outgoing messages are scheduled `SLACK_ADD_MESSAGE_DELAY` ahead (default
+`3m`) through `chat.scheduleMessage`, which leaves a window to cancel one.
+Setting it to `0`, `0s`, `none` or `false` posts immediately through
+`chat.postMessage`.
 
-**Layer 4 — Dangerous Operation Prevention:**
-- Read-only tools only — no writes, deletes, or modifications
-- No filesystem access, shell execution, or code evaluation
-- No `eval()`/`exec()` functions
-- Tools are pure API wrappers with no side effects
-
-**Layer 5 — Supply Chain Security:**
-- Weekly automated CVE scanning via GitHub Actions
-- Hummingbird distroless FIPS container base images (no shell, no package manager, minimal CVE surface)
-- Multi-stage build: `latest-fips-builder` for compilation, `latest-fips` for runtime
-- Gourmand AI slop detection gating all PRs
-
-### 2. Two-Layer Tool Architecture
-
-Tools follow a strict two-layer pattern:
-- `server.py` — `@mcp.tool()` decorated functions that validate args and delegate
-- `tools/*.py` — Pure async functions that call `client.py` HTTP methods
-
-Never put business logic in `server.py`. Never put MCP registration in `tools/*.py`.
-
-### 3. Read-Only by Design
-
-The server is strictly read-only. No tools may write, modify, or delete Slack data. This is a fundamental design constraint, not an implementation detail.
-
-### 4. Three Distribution Channels
-
-Every release MUST be available through all three channels simultaneously:
-
-| Channel | Command | Use Case |
-|---------|---------|----------|
-| uvx | `uvx mcp-slack-crunchtools` | Zero-install, Claude Code |
-| pip | `pip install mcp-slack-crunchtools` | Virtual environments |
-| Container | `podman run quay.io/crunchtools/mcp-slack` | Isolated, systemd |
-
-### 5. Three Transport Modes
-
-The server MUST support all three MCP transports:
-- **stdio** (default) — spawned per-session by Claude Code
-- **SSE** — legacy HTTP transport
-- **streamable-http** — production HTTP, systemd-managed containers
-
-### 6. Semantic Versioning
-
-Follow [Semantic Versioning 2.0.0](https://semver.org/) strictly.
-
-**MAJOR** (breaking changes — consumers must update):
-- Removed or renamed tools
-- Changed tool parameter names or types
-- Renamed environment variables
-- Changed default behavior of existing tools
-
-**MINOR** (new functionality — backwards compatible):
-- New tools added
-- New optional parameters on existing tools
-- New tool groups
-
-**PATCH** (fixes — no functional change):
-- Bug fixes in existing tools
-- Test additions or improvements
-- Security patches (dependency updates)
-
-**No version bump required** (infrastructure, not shipped):
-- CI/CD changes (workflows, gourmand config)
-- Documentation (README, CLAUDE.md, SECURITY.md)
-- Issue templates, pre-commit config
-- Governance files (.specify/)
-
-**Version bump happens at release time, not per-commit.** Multiple commits can accumulate between releases. The version in `pyproject.toml` and `server.py` is bumped when cutting a release tag.
-
-### 7. AI Code Quality
-
-All code MUST pass Gourmand checks before merge. Zero violations required.
-
----
-
-## II. Technology Stack
-
-| Layer | Technology | Version |
-|-------|------------|---------|
-| Language | Python | 3.10+ |
-| MCP Framework | FastMCP | Latest |
-| HTTP Client | httpx | Latest |
-| Validation | Pydantic | v2 |
-| Container Base | Hummingbird FIPS (distroless) | Latest |
-| Package Manager | uv | Latest |
-| Build System | hatchling | Latest |
-| Linter | ruff | Latest |
-| Type Checker | mypy (strict) | Latest |
-| Tests | pytest + pytest-asyncio | Latest |
-| Slop Detector | gourmand | Latest |
-
----
-
-## III. Containerfile Conventions
-
-The container uses a multi-stage Hummingbird FIPS build:
-
-1. **Builder stage** (`quay.io/hummingbird/python:latest-fips-builder`) — has shell, dnf, build tools. Creates a Python venv and installs all dependencies.
-2. **Runtime stage** (`quay.io/hummingbird/python:latest-fips`) — distroless, no shell, no package manager. The venv is copied from the builder. No `RUN` commands in this stage.
-
-Builder and runtime MUST be from the same Hummingbird ecosystem. Never mix with UBI, Fedora, or Alpine base images.
-
----
-
-## IV. Testing Standards
-
-### Mocked API Tests (MANDATORY)
-
-Every tool MUST have a corresponding mocked test. Tests use `httpx.AsyncClient` mocking — no live API calls, no tokens required in CI.
-
-**Pattern:**
-1. Build a mock `httpx.Response` with `_mock_response()` helper
-2. Patch `httpx.AsyncClient` via `_patch_client()` context manager
-3. Call the tool function directly (not the `_tool` wrapper)
-4. Assert response structure and values
-
-**Tool count assertion:** `test_tool_count` MUST be updated whenever tools are added or removed. This catches accidental regressions.
-
-### Input Validation Tests
-
-Every Pydantic model in `models.py` MUST have tests in `test_validation.py`:
-- Valid minimal input
-- Valid full input
-- Invalid/rejected inputs (empty strings, too-long values, extra fields)
-- Injection prevention (special characters in IDs)
-
-### Security Tests
-
-- Token sanitization: `SlackApiError` MUST scrub tokens from messages
-- Config safety: `repr()` and `str()` MUST never expose the token
-
----
-
-## V. Gourmand (AI Slop Detection)
-
-All code MUST pass `gourmand --full .` with **zero violations** before merge. Gourmand is a CI gate in GitHub Actions.
-
-### Configuration
-
-- `gourmand.toml` — Check settings, excluded paths
-- `gourmand-exceptions.toml` — Documented exceptions with justifications
-- `.gourmand-cache/` — Must be in `.gitignore`
-
-### Exception Policy
-
-Exceptions MUST have documented justifications in `gourmand-exceptions.toml`. Acceptable reasons:
-- Standard API patterns (HTTP status codes, pagination params)
-- Test-specific patterns (intentional invalid input)
-- Framework requirements (CLAUDE.md for Claude Code)
-
-Unacceptable reasons:
-- "The code is special"
-- "The threshold is too strict"
-- Rewording to avoid detection
-
----
-
-## VI. Code Quality Gates
-
-Every code change must pass through these gates in order:
-
-1. **Lint** — `uv run ruff check src tests`
-2. **Type Check** — `uv run mypy src`
-3. **Tests** — `uv run pytest -v` (all passing, mocked httpx)
-4. **Gourmand** — `gourmand --full .` (zero violations)
-5. **Container Build** — `podman build -f Containerfile .`
-
-### CI Pipeline (GitHub Actions)
-
-| Job | What it does | Gates PRs |
-|-----|-------------|-----------|
-| test | Lint + mypy + pytest (Python 3.10-3.12) | Yes |
-| gourmand | AI slop detection | Yes |
-| build-container | Containerfile builds | Yes |
-| security | Weekly CVE scan + CodeQL | Scheduled |
-| publish | PyPI trusted publishing | On release tag |
-| container | Quay.io push + Trivy | On release tag |
-
----
-
-## VII. Naming Conventions
+## Instance
 
 | Context | Name |
 |---------|------|
 | GitHub repo | `crunchtools/mcp-slack` |
 | PyPI package | `mcp-slack-crunchtools` |
-| CLI command | `mcp-slack-crunchtools` |
 | Python module | `mcp_slack_crunchtools` |
 | Container image | `quay.io/crunchtools/mcp-slack` |
 | systemd service | `mcp-slack.service` |
 | HTTP port | 8005 |
-| License | AGPL-3.0-or-later |
 
----
-
-## VIII. Development Workflow
-
-### Adding a New Tool
-
-1. Add the async function to the appropriate `tools/*.py` file
-2. Export it from `tools/__init__.py`
-3. Import it in `server.py` and register with `@mcp.tool()`
-4. Add a mocked test in `tests/test_tools.py`
-5. Update the tool count in `test_tool_count`
-6. Run all five quality gates
-7. Update CLAUDE.md tool listing
-
-### Adding a New Tool Group
-
-1. Create `tools/new_group.py` with async functions
-2. Add imports and `__all__` entries in `tools/__init__.py`
-3. Add `@mcp.tool()` wrappers in `server.py`
-4. Add a `TestNewGroupTools` class in `tests/test_tools.py`
-5. Run all five quality gates
-
----
-
-## IX. Governance
-
-### Amendment Process
-
-1. Create a PR with proposed changes to this constitution
-2. Document rationale in PR description
-3. Require maintainer approval
-4. Update version number upon merge
-
-### Ratification History
+## History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0.0 | 2026-03-25 | Initial constitution |
-| 1.1.0 | 2026-03-25 | Switch to Hummingbird distroless FIPS with multi-stage venv build pattern |
-| 1.2.0 | 2026-03-25 | Add Section III (Containerfile Conventions), renumber to match parent profile |
+| 1.1.0 | 2026-03-25 | Hummingbird distroless FIPS with multi-stage venv build |
+| 1.2.0 | 2026-03-25 | Containerfile Conventions section added, numbering matched to the parent profile |
+| 1.3.0 | 2026-10-02 | Manifest under constitution v1.18.0: profile restatement removed; "read-only by design" replaced by the actual write surface (message send and cancel, added after 1.2.0) |
