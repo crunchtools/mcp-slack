@@ -8,6 +8,12 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+### Changed
+- Constitution is now a v1.18.0 manifest: only repo-specific facts remain;
+  fleet and profile rules apply by reference.
+- Constitution validation is pinned via `.github/workflows/constitution.yml`.
+- Dependabot auto-merges GitHub Actions minor and patch updates.
+
 ## [0.1.3] - 2026-03-25
 
 ### Changed
