@@ -1,16 +1,14 @@
 repos:
-  - repo: local
+  # ruff runs from its own pre-commit environment, not a host install
+  # (constitution XII, host contract). Keep rev at the ruff version in uv.lock.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
     hooks:
       - id: ruff-check
-        name: ruff check
-        entry: uv run ruff check --fix
-        language: system
+        args: [--fix]
         types: [python]
         stages: [pre-commit, pre-merge-commit]
       - id: ruff-format
-        name: ruff format
-        entry: uv run ruff format
-        language: system
         types: [python]
         stages: [pre-commit, pre-merge-commit]
   - repo: https://github.com/crunchtools/constitution
