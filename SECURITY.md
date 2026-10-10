@@ -30,7 +30,7 @@ This document describes the security architecture of mcp-slack-crunchtools.
 | **Path Traversal** | Manipulated file paths | No filesystem operations |
 | **SSRF** | Redirect API calls to internal services | Hardcoded API base URL |
 | **Denial of Service** | Exhaust Slack rate limits | Rate limiting awareness |
-| **Privilege Escalation** | Attempt write operations | Read-only tools only, no write API calls |
+| **Privilege Escalation** | Attempt write operations | Writes limited to sending a message and cancelling a scheduled one; sends are delayed by default so they can be cancelled |
 | **Supply Chain** | Compromised dependencies | Automated CVE scanning |
 
 ## 2. Security Architecture
@@ -64,7 +64,7 @@ This document describes the security architecture of mcp-slack-crunchtools.
 | - No filesystem access                                  |
 | - No shell execution (subprocess)                       |
 | - No dynamic code evaluation (eval/exec)                |
-| - Read-only tools only - no write API calls             |
+| - Writes limited to message send and cancel             |
 +---------------------------------------------------------+
 | Layer 6: Supply Chain Security                          |
 | - Automated CVE scanning via GitHub Actions             |
@@ -107,20 +107,26 @@ All Slack IDs are validated using regex patterns:
 - **Timestamps**: Must match `^\d+\.\d+$`
 - **Pagination limits**: Clamped to valid ranges
 
-### 2.4 Read-Only Guarantee
+### 2.4 Write Surface
 
-This server exclusively uses read-only Slack API methods:
+Fifteen tools use only these read methods and publish `readOnlyHint: true`:
 - `auth.test`, `conversations.list`, `conversations.info`
 - `conversations.history`, `conversations.replies`, `conversations.members`
 - `search.messages`, `reactions.get`, `reactions.list`, `stars.list`
 - `users.info`, `users.list`, `users.profile.get`
 - `files.list`, `files.info`
 
-No write methods (`chat.postMessage`, `chat.delete`, `files.upload`, etc.) are implemented.
+Two tools write. `slack_send_message` calls `chat.scheduleMessage`, or
+`chat.postMessage` when `SLACK_ADD_MESSAGE_DELAY` is `0`, and
+`slack_cancel_scheduled_message` calls `chat.deleteScheduledMessage`. Neither
+publishes the hint. No other write method (`chat.update`, `chat.delete`,
+`files.upload`, `conversations.mark`, etc.) is implemented. A test asserts that
+the read-only tools call only the methods listed above.
 
 ## 3. Required OAuth Scopes
 
-All scopes are read-only:
+The read tools need these read scopes. The two write tools also need
+`chat:write`; leave it out and they fail while the reads keep working.
 
 | Scope | Purpose |
 |-------|---------|

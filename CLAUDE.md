@@ -1,6 +1,6 @@
 # Claude Code Instructions
 
-This is a secure read-only MCP server for Slack workspaces.
+This is a secure MCP server for Slack workspaces: 15 read tools, plus two tools that send a message and cancel a scheduled one.
 
 ## Quick Start
 
@@ -94,17 +94,17 @@ claude mcp add mcp-slack-crunchtools \
 | `channels:history` | Read channel messages |
 
 #### Standard (recommended)
-All 15 scopes listed above for full read-only access.
+All 15 scopes listed above for full read-only access. Add `chat:write` to use `slack_send_message` and `slack_cancel_scheduled_message`.
 
 ### Security Best Practices
 
-- **Read-only scopes only**: This server never writes to Slack
+- **Read scopes unless you send**: Only `slack_send_message` and `slack_cancel_scheduled_message` write to Slack, and they need `chat:write`
 - **User token, not bot**: Uses `xoxp-` token for user-scoped access
 - **Never commit tokens**: Don't put tokens in code or config files
 - **Rotate regularly**: Revoke and recreate tokens periodically
 - **Least privilege**: Only add scopes you actually need
 
-## Available Tools (all read-only)
+## Available Tools (read-only unless marked)
 
 ### Authentication
 - `slack_auth_test` - Test connection and get token owner info
@@ -130,6 +130,10 @@ All 15 scopes listed above for full read-only access.
 ### Files
 - `slack_list_files` - List files (metadata only)
 - `slack_get_file_info` - Get file metadata and comments
+
+### Messaging (write)
+- `slack_send_message` - Schedule a message `SLACK_ADD_MESSAGE_DELAY` ahead, or post immediately when the delay is `0`
+- `slack_cancel_scheduled_message` - Cancel a scheduled message before it sends
 
 ## Example Usage
 

@@ -1,10 +1,10 @@
 # mcp-slack-crunchtools
 
-Secure read-only MCP server for Slack workspaces. Provides Claude Code (and other MCP clients) with access to your Slack channels, messages, users, and files without any write permissions.
+Secure MCP server for Slack workspaces. Provides Claude Code (and other MCP clients) with read access to your Slack channels, messages, users, and files, and can send a message on your behalf.
 
 ## Features
 
-- **Read-only**: 15 tools, all read-only. Never posts, edits, or deletes anything.
+- **Mostly read**: 15 of the 17 tools only read and publish `readOnlyHint: true`. The other two send a message and cancel a scheduled one; nothing edits or deletes existing content.
 - **Secure**: 6-layer security model (input validation, token handling, client hardening, output sanitization, runtime protection, supply chain security).
 - **User OAuth Token**: Uses `xoxp-` tokens for user-scoped access to your workspace.
 - **No SDK dependency**: Uses `httpx` directly for minimal, auditable HTTP calls.
@@ -91,6 +91,10 @@ Prefer `SLACK_USER_TOKEN` whenever a Slack app can actually be installed.
 | `slack_get_user_profile` | Get user profile |
 | `slack_list_files` | List files (metadata only) |
 | `slack_get_file_info` | Get file metadata |
+| `slack_send_message` | Schedule a message `SLACK_ADD_MESSAGE_DELAY` ahead, or post it immediately when the delay is `0` (write) |
+| `slack_cancel_scheduled_message` | Cancel a scheduled message before it sends (write) |
+
+The two write tools need the `chat:write` scope in token mode.
 
 ## Security
 

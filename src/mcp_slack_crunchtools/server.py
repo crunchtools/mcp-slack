@@ -27,14 +27,18 @@ from .tools import (
 
 logger = logging.getLogger(__name__)
 
+# A gateway drops an invalid optional argument only on a tool annotated read-only;
+# on anything else it refuses the call. Only tools that change nothing in Slack get this.
+READ_ONLY = {"readOnlyHint": True}
+
 mcp = FastMCP(
     name="mcp-slack-crunchtools",
-    version="0.2.0",
+    version="0.3.0",
     instructions="Secure MCP server for Slack workspaces",
 )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_auth_test() -> dict[str, Any]:
     """Test Slack authentication and get info about the token owner.
 
@@ -44,7 +48,7 @@ async def slack_auth_test() -> dict[str, Any]:
     return await auth_test()
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_list_channels(
     types: str = "public_channel,private_channel",
     exclude_archived: bool = True,
@@ -67,7 +71,7 @@ async def slack_list_channels(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_get_channel_info(channel_id: str) -> dict[str, Any]:
     """Get detailed information about a Slack channel.
 
@@ -80,7 +84,7 @@ async def slack_get_channel_info(channel_id: str) -> dict[str, Any]:
     return await get_channel_info(channel_id=channel_id)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_get_channel_history(
     channel_id: str,
     limit: int = 100,
@@ -112,7 +116,7 @@ async def slack_get_channel_history(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_get_thread_replies(
     channel_id: str,
     thread_ts: str,
@@ -147,7 +151,7 @@ async def slack_get_thread_replies(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_list_channel_members(
     channel_id: str,
     limit: int = 200,
@@ -166,7 +170,7 @@ async def slack_list_channel_members(
     return await list_channel_members(channel_id=channel_id, limit=limit, cursor=cursor)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_search_messages(
     query: str,
     sort: str = "timestamp",
@@ -192,7 +196,7 @@ async def slack_search_messages(
     return await search_messages(query=query, sort=sort, sort_dir=sort_dir, count=count, page=page)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_get_reactions(
     channel_id: str,
     timestamp: str,
@@ -211,7 +215,7 @@ async def slack_get_reactions(
     return await get_reactions(channel_id=channel_id, timestamp=timestamp, full=full)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_list_reactions(
     user_id: str | None = None,
     count: int = 100,
@@ -232,7 +236,7 @@ async def slack_list_reactions(
     return await list_reactions(user_id=user_id, count=count, page=page, full=full)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_list_stars(
     count: int = 100,
     page: int = 1,
@@ -251,7 +255,7 @@ async def slack_list_stars(
     return await list_stars(count=count, page=page, cursor=cursor)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_get_user_info(user_id: str) -> dict[str, Any]:
     """Get information about a Slack user.
 
@@ -264,7 +268,7 @@ async def slack_get_user_info(user_id: str) -> dict[str, Any]:
     return await get_user_info(user_id=user_id)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_list_users(
     limit: int = 200,
     cursor: str | None = None,
@@ -281,7 +285,7 @@ async def slack_list_users(
     return await list_users(limit=limit, cursor=cursor)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_get_user_profile(
     user_id: str,
     include_labels: bool = False,
@@ -298,7 +302,7 @@ async def slack_get_user_profile(
     return await get_user_profile(user_id=user_id, include_labels=include_labels)
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_list_files(
     channel_id: str | None = None,
     user_id: str | None = None,
@@ -333,7 +337,7 @@ async def slack_list_files(
     )
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def slack_get_file_info(
     file_id: str,
     count: int = 100,
