@@ -8,11 +8,37 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-10
+
+0.2.0 was set in `pyproject.toml` when the send and cancel tools were added but
+was never tagged or published, so this is the first release since 0.1.3.
+
+### Added
+- `slack_send_message` and `slack_cancel_scheduled_message`. A message is
+  scheduled `SLACK_ADD_MESSAGE_DELAY` ahead (default `3m`) through
+  `chat.scheduleMessage`, which leaves a window to cancel it; `0` posts
+  immediately through `chat.postMessage`.
+- The fifteen tools that only read publish `readOnlyHint: true`. A gateway uses
+  it to decide whether an invalid optional argument may be dropped or must
+  refuse the call (crunchtools/constitution#35). The two message tools do not.
+- Tests pin every registered tool into `READ_ONLY` or `WRITES`, and check that
+  each read-only tool calls only Slack API methods from a named set of reads.
+  Slack takes POST for everything, so the check is on the API method.
+
 ### Changed
+- Inherits constitution v1.22.0; the workflow pins and the pre-commit hook rev
+  move with it.
 - Constitution is now a v1.18.0 manifest: only repo-specific facts remain;
   fleet and profile rules apply by reference.
 - Constitution validation is pinned via `.github/workflows/constitution.yml`.
 - Dependabot auto-merges GitHub Actions minor and patch updates.
+
+### Fixed
+- `server.json` and the Containerfile `version` label still said 0.1.3; both
+  carry the release version again.
+- README, SECURITY.md, CLAUDE.md, `server.json`, the Containerfile labels and
+  the PyPI keywords described the server as read-only after the message tools
+  were added. They now state the write surface and the `chat:write` scope.
 
 ## [0.1.3] - 2026-03-25
 

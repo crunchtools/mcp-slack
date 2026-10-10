@@ -2,7 +2,9 @@
 
 import asyncio
 import os
+from collections.abc import Iterator
 
+import httpx
 import pytest
 
 
@@ -61,6 +63,190 @@ class TestToolRegistration:
         from mcp_slack_crunchtools.tools import __all__
 
         assert len(__all__) == 17
+
+
+READ_ONLY = frozenset(
+    {
+        "slack_auth_test",
+        "slack_list_channels",
+        "slack_get_channel_info",
+        "slack_get_channel_history",
+        "slack_get_thread_replies",
+        "slack_list_channel_members",
+        "slack_search_messages",
+        "slack_get_reactions",
+        "slack_list_reactions",
+        "slack_list_stars",
+        "slack_get_user_info",
+        "slack_list_users",
+        "slack_get_user_profile",
+        "slack_list_files",
+        "slack_get_file_info",
+    }
+)
+WRITES = frozenset({"slack_send_message", "slack_cancel_scheduled_message"})
+
+# Slack's Web API takes POST for reads and writes alike, so the HTTP verb says
+# nothing. What separates them is the API method in the path. These are the
+# methods a read-only tool may call; each returns data and changes nothing.
+# conversations.mark, chat.* and reactions.add are absent on purpose.
+READ_METHODS = frozenset(
+    {
+        "auth.test",
+        "conversations.list",
+        "conversations.info",
+        "conversations.history",
+        "conversations.replies",
+        "conversations.members",
+        "search.messages",
+        "reactions.get",
+        "reactions.list",
+        "stars.list",
+        "users.info",
+        "users.list",
+        "users.profile.get",
+        "files.list",
+        "files.info",
+    }
+)
+
+# Every parameter of each read-only tool, so optional branches run too.
+READ_ONLY_CALLS: dict[str, dict[str, object]] = {
+    "slack_auth_test": {},
+    "slack_list_channels": {"types": "im", "exclude_archived": False, "limit": 5, "cursor": "c1"},
+    "slack_get_channel_info": {"channel_id": "C012345678"},
+    "slack_get_channel_history": {
+        "channel_id": "C012345678",
+        "limit": 5,
+        "cursor": "c1",
+        "oldest": "1700000000.000100",
+        "latest": "1700000001.000100",
+        "inclusive": True,
+    },
+    "slack_get_thread_replies": {
+        "channel_id": "C012345678",
+        "thread_ts": "1700000000.000100",
+        "limit": 5,
+        "cursor": "c1",
+        "oldest": "1700000000.000100",
+        "latest": "1700000001.000100",
+        "inclusive": True,
+    },
+    "slack_list_channel_members": {"channel_id": "C012345678", "limit": 5, "cursor": "c1"},
+    "slack_search_messages": {
+        "query": "from:scott",
+        "sort": "score",
+        "sort_dir": "asc",
+        "count": 5,
+        "page": 2,
+    },
+    "slack_get_reactions": {
+        "channel_id": "C012345678",
+        "timestamp": "1700000000.000100",
+        "full": True,
+    },
+    "slack_list_reactions": {"user_id": "U012345678", "count": 5, "page": 2, "full": True},
+    "slack_list_stars": {"count": 5, "page": 2, "cursor": "c1"},
+    "slack_get_user_info": {"user_id": "U012345678"},
+    "slack_list_users": {"limit": 5, "cursor": "c1"},
+    "slack_get_user_profile": {"user_id": "U012345678", "include_labels": True},
+    "slack_list_files": {
+        "channel_id": "C012345678",
+        "user_id": "U012345678",
+        "types": "images",
+        "count": 5,
+        "page": 2,
+        "ts_from": "1700000000",
+        "ts_to": "1700000001",
+    },
+    "slack_get_file_info": {"file_id": "F012345678", "count": 5, "page": 2},
+}
+
+
+@pytest.fixture
+def slack_requests(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[httpx.Request]]:
+    """Route the Slack client through a mock transport and record what it sends."""
+    import mcp_slack_crunchtools.client as client_module
+    import mcp_slack_crunchtools.config as config_module
+
+    monkeypatch.setenv("SLACK_USER_TOKEN", "xoxp-test-token-for-ci")
+    monkeypatch.setenv("SLACK_ADD_MESSAGE_DELAY", "0")
+    monkeypatch.setattr(config_module, "_config", None)
+
+    sent: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        return httpx.Response(200, json={"ok": True})
+
+    slack = client_module.SlackClient()
+    slack._client = httpx.AsyncClient(
+        base_url=config_module.get_config().api_base_url,
+        transport=httpx.MockTransport(handler),
+    )
+    monkeypatch.setattr(client_module, "_client", slack)
+    yield sent
+    monkeypatch.setattr(config_module, "_config", None)
+
+
+def _api_methods(sent: list[httpx.Request]) -> set[str]:
+    """Slack API method names from recorded requests (the last path segment)."""
+    return {request.url.path.rsplit("/", 1)[-1] for request in sent}
+
+
+class TestReadOnlyAnnotation:
+    """Every registered tool is classified, and the reads really only read."""
+
+    @pytest.mark.asyncio
+    async def test_every_tool_is_classified(self) -> None:
+        os.environ.setdefault("SLACK_USER_TOKEN", "xoxp-test-token-for-ci")
+        from mcp_slack_crunchtools.server import mcp
+
+        tools = await mcp.list_tools()
+        assert READ_ONLY.isdisjoint(WRITES)
+        assert {tool.name for tool in tools} == READ_ONLY | WRITES
+        annotated = {
+            tool.name
+            for tool in tools
+            if tool.annotations is not None
+            and tool.annotations.model_dump(by_alias=True).get("readOnlyHint") is True
+        }
+        assert annotated == READ_ONLY
+
+    def test_every_read_only_tool_has_a_call(self) -> None:
+        assert set(READ_ONLY_CALLS) == READ_ONLY
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("name", sorted(READ_ONLY))
+    async def test_read_only_tool_calls_only_read_methods(
+        self, name: str, slack_requests: list[httpx.Request]
+    ) -> None:
+        from mcp_slack_crunchtools.server import mcp
+
+        await mcp.call_tool(name, READ_ONLY_CALLS[name])
+        assert slack_requests, f"{name} sent nothing to Slack"
+        assert _api_methods(slack_requests) <= READ_METHODS
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("name", "args"),
+        [
+            ("slack_send_message", {"channel_id": "C012345678", "text": "hello"}),
+            (
+                "slack_cancel_scheduled_message",
+                {"channel_id": "C012345678", "scheduled_message_id": "Q1234ABCD"},
+            ),
+        ],
+    )
+    async def test_write_tool_is_caught_by_the_method_check(
+        self, name: str, args: dict[str, object], slack_requests: list[httpx.Request]
+    ) -> None:
+        """The same recording flags a write, so the read check above can fail."""
+        from mcp_slack_crunchtools.server import mcp
+
+        await mcp.call_tool(name, args)
+        assert slack_requests
+        assert not _api_methods(slack_requests) <= READ_METHODS
 
 
 class TestWriteTools:
