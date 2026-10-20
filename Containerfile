@@ -17,7 +17,7 @@
 #     -- podman run -i --rm -e SLACK_USER_TOKEN quay.io/crunchtools/mcp-slack
 
 # Stage 1: Builder (has shell, dnf, build tools)
-FROM quay.io/hummingbird/python:latest-fips-builder AS builder
+FROM quay.io/hummingbird/python:3.14-fips-builder AS builder
 USER 0
 WORKDIR /app
 RUN python3 -m venv /app/venv
@@ -27,7 +27,7 @@ COPY src/ ./src/
 RUN pip install --no-cache-dir .
 
 # Stage 2: Runtime (distroless — no shell, no package manager)
-FROM quay.io/hummingbird/python:latest-fips
+FROM quay.io/hummingbird/python:3.14-fips
 
 LABEL name="mcp-slack-crunchtools" \
       version="0.3.0" \
