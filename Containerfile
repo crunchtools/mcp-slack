@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir .
 FROM quay.io/hummingbird/python:3.14-fips
 
 LABEL name="mcp-slack-crunchtools" \
-      version="0.3.0" \
+      version="0.4.0" \
       summary="Secure MCP server for Slack workspaces" \
       description="A security-focused MCP server for Slack on Hummingbird FIPS" \
       maintainer="crunchtools.com" \
