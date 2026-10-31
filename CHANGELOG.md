@@ -8,6 +8,8 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-31
+
 ### Security
 
 - Upgraded locked dependencies within their declared ranges to clear the
