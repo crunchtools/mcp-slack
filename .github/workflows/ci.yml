@@ -1,57 +1,41 @@
+# The one CI job: every check this repo runs, from python-sdlc at the release
+# .pre-commit-config.yaml pins -- the same image and the same commands the
+# laptop runs, so a green push predicts a green CI (constitution XII, v1.30.0).
+#
+# The job NAME `sdlc ci` is the required check in the org ruleset "Python SDLC
+# gates". Renaming the job stops it gating, silently.
+
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  sdlc:
+    name: sdlc ci
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-
     steps:
       - uses: actions/checkout@v7
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
         with:
-          version: "latest"
+          persist-credentials: false
 
-      - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: uv sync --all-extras
-
-      - name: Run linter
-        run: uv run ruff check src tests
-
-      - name: Run type checker
-        run: uv run mypy src
-
-      - name: Run tests
-        run: uv run pytest -v
-        env:
-          SLACK_USER_TOKEN: "xoxp-test-token-for-ci"
+      # The release is read from .pre-commit-config.yaml, so one line pins the
+      # launcher, the image and every tool in it, for the laptop and CI both.
+      - name: sdlc ci
+        run: |
+          set -eu
+          rev=$(awk '/repo: https:\/\/github.com\/crunchtools\/python-sdlc/ {f=1; next}
+                     f && /rev:/ {print $2; exit}' .pre-commit-config.yaml)
+          [ -n "$rev" ] || { echo "no python-sdlc rev in .pre-commit-config.yaml" >&2; exit 2; }
+          git clone -q --depth 1 --branch "$rev" https://github.com/crunchtools/python-sdlc "$RUNNER_TEMP/sdlc"
+          $RUNNER_TEMP/sdlc/bin/sdlc ci
 
   gourmand:
     name: Code Quality (Gourmand)
     uses: crunchtools/gatehouse/.github/workflows/gourmand.yml@v0
-
-  build-container:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Build container image
-        run: |
-          docker build -f Containerfile -t mcp-slack:test .
-
-      - name: Verify container
-        run: |
-          # Just verify it starts (will fail due to no token, but should start)
-          timeout 5 docker run --rm mcp-slack:test || true
