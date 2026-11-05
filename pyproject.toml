@@ -91,8 +91,3 @@ skip = ["semgrep"]
 [tool.sdlc.push.pytest]
 env = { SLACK_USER_TOKEN = "xoxp-test-token-for-ci" }
 
-[tool.sdlc.ci]
-# The CodeQL Action job uploads to the Security tab and annotates new
-# alerts on the pull request, so CI does not analyse a second time.
-# The push tier still gates on it.
-skip = ["codeql"]

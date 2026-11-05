@@ -93,3 +93,6 @@ dmypy.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# Per-machine Claude Code permissions and absolute paths. Never shared.
+.claude/settings.local.json
