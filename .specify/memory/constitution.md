@@ -2,9 +2,9 @@
 
 > **Version:** 1.3.0
 > **Ratified:** 2026-03-25
-> **Amended:** 2026-10-02
+> **Amended:** 2026-11-09
 > **Status:** Active
-> **Inherits:** [crunchtools/constitution](https://github.com/crunchtools/constitution) v1.31.0
+> **Inherits:** [crunchtools/constitution](https://github.com/crunchtools/constitution) v1.36.0
 > **Profile:** MCP Server
 
 This file holds what is specific to mcp-slack. The fleet rules and the MCP
@@ -28,7 +28,8 @@ are not restated here.
   patterns; channel types and sort orders come from allowlists.
 - **API:** the Slack API base URL (`https://slack.com/api`) is hardcoded,
   which prevents SSRF. Credentials never travel in a URL. Responses above
-  10 MB are rejected and requests time out.
+  10 MB are rejected while reading, not from the `content-length` header Slack
+  need not send, and requests time out.
 - **Surface:** no filesystem access, shell execution or code evaluation.
 
 ## Write Surface

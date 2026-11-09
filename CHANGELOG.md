@@ -8,6 +8,38 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-09
+
+### Fixed
+
+- **The response ceiling is now a ceiling.** It read the `content-length`
+  header and nothing else, and that header is optional, so a reply without it
+  was read whole into memory. Bodies are read in bounded pieces now, measured
+  before each chunk is copied in.
+
+- **A body that is not Slack says so.** Slack answers its own failures with
+  HTTP 200 and `{"ok": false}`, so an unparseable body is by definition
+  something that is not Slack — a captive portal, a corporate proxy, an SSO
+  interstitial. That arrived as `Invalid JSON response: Expecting value: line 1
+  column 1 (char 0)`, which is the exact message that cost an afternoon on
+  mcp-wordpress (RT #1596). It now names the method, the URL, the status, the
+  content-type and a short body snippet. Slack's own `ok: false` errors are
+  mapped as before.
+
+### Added
+
+- **The client says what it is.** Requests carry
+  `User-Agent: mcp-slack-crunchtools/<version> (+<repo url>)`, with the version
+  read from installed package metadata.
+
+### Changed
+
+- Inherits constitution v1.36.0, whose MCP Server profile 1.8.0 states the
+  outbound HTTP contract (RT #1601). The existing tests already drove a
+  `MockTransport`, but they assembled the client themselves, so they could not
+  see the headers `_get_client` sets; the new contract tests let it build its
+  own.
+
 ## [0.4.1] - 2026-10-31
 
 ### Security

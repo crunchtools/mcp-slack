@@ -6,7 +6,9 @@ Slack-specific notes:
 - Rate limits return HTTP 429 with Retry-After header
 """
 
+import json
 import logging
+from importlib.metadata import version
 from typing import Any
 
 import httpx
@@ -26,6 +28,69 @@ logger = logging.getLogger(__name__)
 MAX_RESPONSE_SIZE = 10 * 1024 * 1024
 REQUEST_TIMEOUT = 30.0
 HTTP_TOO_MANY_REQUESTS = 429
+BODY_SNIPPET_CHARS = 200
+ELLIPSIS = "..."
+
+# Identify this client by name. httpx otherwise sends `python-httpx/<version>`,
+# which bot protection answers with an HTML challenge page instead of the API --
+# the failure that cost an afternoon on mcp-wordpress (RT #1596). The version
+# comes from installed package metadata so it cannot drift from pyproject.toml.
+USER_AGENT = (
+    f"mcp-slack-crunchtools/{version('mcp-slack-crunchtools')} "
+    "(+https://github.com/crunchtools/mcp-slack)"
+)
+
+
+def _body_snippet(body: bytes) -> str:
+    """A short, single-line excerpt of a response body, for an error message."""
+    prefix = body[: BODY_SNIPPET_CHARS * 4]
+    collapsed = " ".join(prefix.decode("utf-8", errors="replace").split())
+    if not collapsed:
+        return "<empty body>"
+    if len(collapsed) > BODY_SNIPPET_CHARS or len(body) > len(prefix):
+        return collapsed[: BODY_SNIPPET_CHARS - len(ELLIPSIS)] + ELLIPSIS
+    return collapsed
+
+
+def _where(response: httpx.Response) -> str:
+    """Which request a response answered, for an error message.
+
+    Slack answers failures with HTTP 200 and `{"ok": false}`, so the one thing
+    an unparseable body can be is something that is not Slack: a captive portal,
+    a corporate proxy, an SSO interstitial. Naming the URL and the content-type
+    is what tells those apart from the API.
+    """
+    return (
+        f"{response.request.method} {response.request.url} "
+        f"(HTTP {response.status_code}, {response.headers.get('content-type', 'no content-type')})"
+    )
+
+
+async def _read_capped(response: httpx.Response) -> bytes:
+    """Read the body, aborting as soon as it would pass MAX_RESPONSE_SIZE.
+
+    One buffer, measured before the copy: `aiter_bytes()` promises nothing about
+    chunk size -- one chunk can be the whole body -- so appending first would
+    copy in exactly the response being refused. The `content-length` check this
+    replaces was the only limit, and it is a header Slack need not send.
+    """
+    declared = response.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_RESPONSE_SIZE:
+        raise SlackApiError(
+            "response_too_large",
+            f"{_where(response)} declared {declared} bytes, over the "
+            f"{MAX_RESPONSE_SIZE} byte limit",
+        )
+    body = bytearray()
+    async for chunk in response.aiter_bytes():
+        if len(body) + len(chunk) > MAX_RESPONSE_SIZE:
+            raise SlackApiError(
+                "response_too_large",
+                f"{_where(response)} sent over the {MAX_RESPONSE_SIZE} byte limit",
+            )
+        body += chunk
+    return bytes(body)
+
 
 _ERROR_MAP: dict[str, type[Exception]] = {
     "not_authed": PermissionDeniedError,
@@ -61,6 +126,7 @@ class SlackClient:
             headers: dict[str, str] = {
                 "Authorization": f"Bearer {self._config.token}",
                 "Content-Type": "application/x-www-form-urlencoded",
+                "User-Agent": USER_AGENT,
             }
             if self._config.cookie_d is not None:
                 headers["Cookie"] = f"d={self._config.cookie_d}"
@@ -111,7 +177,12 @@ class SlackClient:
                     form_params[key] = value
 
         try:
-            response = await client.post(f"/{method}", data=form_params)
+            request = client.build_request("POST", f"/{method}", data=form_params)
+            response = await client.send(request, stream=True)
+            try:
+                body = await _read_capped(response)
+            finally:
+                await response.aclose()
         except httpx.TimeoutException as e:
             raise SlackApiError("timeout", f"Request timeout: {e}") from e
         except httpx.RequestError as e:
@@ -121,14 +192,13 @@ class SlackClient:
             retry_after = response.headers.get("Retry-After")
             raise RateLimitError(int(retry_after) if retry_after else None)
 
-        content_length = response.headers.get("content-length")
-        if content_length and int(content_length) > MAX_RESPONSE_SIZE:
-            raise SlackApiError("response_too_large", "Response too large")
-
         try:
-            api_response: dict[str, Any] = response.json()
+            api_response: dict[str, Any] = json.loads(body)
         except ValueError as e:
-            raise SlackApiError("invalid_json", f"Invalid JSON response: {e}") from e
+            raise SlackApiError(
+                "invalid_json",
+                f"{_where(response)} is not JSON ({e}): {_body_snippet(body)}",
+            ) from e
 
         if not api_response.get("ok"):
             error_code = api_response.get("error", "unknown_error")

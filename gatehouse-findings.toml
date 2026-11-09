@@ -1,0 +1,47 @@
+# Judged Gatehouse findings. Each needs a status and a reason; see
+# crunchtools/gatehouse. Everything here was raised against the RT #1601
+# outbound HTTP contract work (constitution v1.36.0, MCP Server profile 1.8.0).
+
+# CRITICAL, and the mechanism it asks for already exists one layer down:
+# SlackApiError.__init__ (errors.py) replaces every configured token --
+# SLACK_USER_TOKEN, SLACK_COOKIE_TOKEN, SLACK_COOKIE_D -- with *** in any
+# message it is given, which is exactly this message. The scenario is real: a
+# captive portal or a debug page can echo the Authorization header into its
+# body. So it is now pinned by a test rather than left as an assertion --
+# TestSnippetCarriesNoCredential serves a body containing the token verbatim
+# and asserts it does not reach the message.
+[[findings]]
+agent = "constitution"
+category = "security"
+file = "src/mcp_slack_crunchtools/client.py"
+evidence = "raise SlackApiError(\n    \"invalid_json\",\n    f\"{_where(response)} is not JSON ({e}): {_body_snippet(body)}\",\n)"
+status = "not-a-bug"
+reason = "SlackApiError already scrubs every configured token from any message, which is this path; now pinned by TestSnippetCarriesNoCredential, which reflects the token in the body and asserts it is replaced"
+
+# Same concern, stated generally. The snippet is why this work exists: Slack
+# answers its own failures with HTTP 200, so an unparseable body means the
+# request did not reach Slack, and "safe metadata such as status and content
+# type" is precisely what left RT #1596 undiagnosable for an afternoon. The
+# body is bounded to 200 characters and token-scrubbed.
+[[findings]]
+agent = "security"
+category = "security"
+file = "src/mcp_slack_crunchtools/client.py"
+evidence = "f\"{_where(response)} is not JSON ({e}): {_body_snippet(body)}\","
+status = "not-a-bug"
+reason = "the snippet is the diagnosis this change exists to add; it is bounded to 200 characters and token-scrubbed by SlackApiError, and metadata alone is what made RT #1596 cost an afternoon"
+
+# A real residual, and smaller than it reads. aiter_bytes() yields DECODED
+# bytes, so one wire chunk is decompressed before the total is measured: the
+# spike is one chunk's expansion, not the whole body's. Counting wire bytes
+# instead would be worse -- a compressed body expands past a wire-counted cap
+# after the count, which is why mcp-gemini forces Accept-Encoding: identity.
+# Bounding both is the right answer and it belongs in the shared shape rather
+# than in this one repo: tracked as crunchtools/constitution#106.
+[[findings]]
+agent = "performance"
+category = "performance"
+file = "src/mcp_slack_crunchtools/client.py"
+evidence = "async for chunk in response.aiter_bytes():\n    if len(body) + len(chunk) > MAX_RESPONSE_SIZE:"
+status = "deferred"
+reason = "the spike is one wire chunk's decompression, not the body's; bounding wire bytes as well belongs in the shared shape across the fleet, tracked in https://github.com/crunchtools/constitution/issues/106"
