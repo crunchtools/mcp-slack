@@ -227,3 +227,23 @@ class TestDeclaredLength:
             result = await client_mod.get_client().api_call("auth.test")
 
         assert result["ok"] is True
+
+
+class TestSnippetShape:
+    """The three branches of `_body_snippet`, which every error message uses."""
+
+    def test_an_empty_body_says_so_rather_than_nothing(self) -> None:
+        assert client_mod._body_snippet(b"") == "<empty body>"
+
+    def test_a_whitespace_only_body_counts_as_empty(self) -> None:
+        assert client_mod._body_snippet(b"  \n\t ") == "<empty body>"
+
+    def test_a_long_body_is_cut_to_the_cap_including_the_ellipsis(self) -> None:
+        snippet = client_mod._body_snippet(b"y" * 100_000)
+
+        assert len(snippet) == client_mod.BODY_SNIPPET_CHARS
+        assert snippet.endswith("...")
+
+    def test_a_short_body_is_quoted_whole_and_collapsed(self) -> None:
+        """Runs of whitespace become single spaces so the message stays one line."""
+        assert client_mod._body_snippet(b"<title>Sign\n  in</title>") == "<title>Sign in</title>"
