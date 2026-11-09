@@ -29,7 +29,7 @@ async def _chunks(chunk: bytes, times: int) -> AsyncIterator[bytes]:
 @contextmanager
 def _serving(handler: Handler, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Let `_get_client` build a real client, on a mock transport."""
-    monkeypatch.setenv("SLACK_USER_TOKEN", "xoxp-test-token")
+    monkeypatch.setenv("SLACK_USER_TOKEN", "xoxp-test-token")  # gatehouse: allow-secret
     import mcp_slack_crunchtools.config as config_mod
 
     config_mod._config = None
@@ -159,7 +159,9 @@ class TestSnippetCarriesNoCredential:
         given, which is what makes quoting a body safe. This pins that: the
         snippet is built from a body that contains the token verbatim.
         """
-        token = "xoxp-test-token"
+        # A fake token whose whole purpose is to be found in a response body
+        # and scrubbed out of the message.
+        token = "xoxp-test-token"  # gatehouse: allow-secret
 
         def handler(request: httpx.Request) -> httpx.Response:
             echoed = request.headers["Authorization"]
