@@ -33,7 +33,7 @@ READ_ONLY = {"readOnlyHint": True}
 
 mcp = FastMCP(
     name="mcp-slack-crunchtools",
-    version="0.4.1",
+    version="0.5.0",
     instructions="Secure MCP server for Slack workspaces",
 )
 
