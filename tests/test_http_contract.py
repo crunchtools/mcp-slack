@@ -144,3 +144,84 @@ class TestErrorNamesTheSite:
 
         with _serving(handler, monkeypatch), pytest.raises(ChannelNotFoundError):
             await client_mod.get_client().api_call("conversations.history")
+
+
+class TestSnippetCarriesNoCredential:
+    """A reflected token must not reach the message (Layer 1, and this repo's manifest)."""
+
+    @pytest.mark.asyncio
+    async def test_a_body_reflecting_the_token_is_scrubbed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A portal or debug page can echo the Authorization header back.
+
+        `SlackApiError` scrubs the configured tokens from any message it is
+        given, which is what makes quoting a body safe. This pins that: the
+        snippet is built from a body that contains the token verbatim.
+        """
+        token = "xoxp-test-token"
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            echoed = request.headers["Authorization"]
+            return httpx.Response(
+                200, headers={"content-type": "text/html"}, text=f"<pre>{echoed}</pre>"
+            )
+
+        with _serving(handler, monkeypatch), pytest.raises(SlackApiError) as caught:
+            await client_mod.get_client().api_call("auth.test")
+
+        message = str(caught.value)
+        assert token not in message
+        assert "***" in message
+
+
+class TestDeclaredLength:
+    """The header is an early reject, and the limit itself is inclusive."""
+
+    @pytest.mark.asyncio
+    async def test_a_declared_length_over_the_cap_is_rejected(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(client_mod, "MAX_RESPONSE_SIZE", 64)
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, headers={"content-type": "application/json"}, content=b"x" * 128
+            )
+
+        with _serving(handler, monkeypatch), pytest.raises(SlackApiError) as caught:
+            await client_mod.get_client().api_call("auth.test")
+
+        assert "declared 128 bytes" in str(caught.value)
+
+    @pytest.mark.asyncio
+    async def test_a_body_exactly_at_the_cap_is_accepted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The limit is a ceiling, not a target: exactly at it is fine."""
+        payload = b'{"ok": true, "pad": "' + b"x" * 100 + b'"}'
+        monkeypatch.setattr(client_mod, "MAX_RESPONSE_SIZE", len(payload))
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, headers={"content-type": "application/json"}, content=payload
+            )
+
+        with _serving(handler, monkeypatch):
+            result = await client_mod.get_client().api_call("auth.test")
+
+        assert result["ok"] is True
+
+    @pytest.mark.asyncio
+    async def test_a_malformed_declared_length_does_not_crash(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def handler(_request: httpx.Request) -> httpx.Response:
+            response = httpx.Response(200, json={"ok": True})
+            response.headers["content-length"] = "not-a-number"
+            return response
+
+        with _serving(handler, monkeypatch):
+            result = await client_mod.get_client().api_call("auth.test")
+
+        assert result["ok"] is True
