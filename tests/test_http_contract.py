@@ -247,3 +247,45 @@ class TestSnippetShape:
     def test_a_short_body_is_quoted_whole_and_collapsed(self) -> None:
         """Runs of whitespace become single spaces so the message stays one line."""
         assert client_mod._body_snippet(b"<title>Sign\n  in</title>") == "<title>Sign in</title>"
+
+
+class TestTransportFailureWhileReading:
+    """The streaming read is a new failure point: the old code read eagerly."""
+
+    @pytest.mark.asyncio
+    async def test_a_failure_mid_stream_becomes_a_slack_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A read timeout after the headers arrive must not escape as httpx's own."""
+
+        async def failing_stream() -> AsyncIterator[bytes]:
+            yield b'{"ok"'
+            raise httpx.ReadTimeout("the connection went quiet")
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, headers={"content-type": "application/json"}, content=failing_stream()
+            )
+
+        with _serving(handler, monkeypatch), pytest.raises(SlackApiError) as caught:
+            await client_mod.get_client().api_call("conversations.history")
+
+        assert "Request timeout" in str(caught.value)
+
+    @pytest.mark.asyncio
+    async def test_a_connection_error_mid_stream_becomes_a_slack_error(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        async def failing_stream() -> AsyncIterator[bytes]:
+            yield b'{"ok"'
+            raise httpx.ReadError("connection reset")
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, headers={"content-type": "application/json"}, content=failing_stream()
+            )
+
+        with _serving(handler, monkeypatch), pytest.raises(SlackApiError) as caught:
+            await client_mod.get_client().api_call("conversations.history")
+
+        assert "Request failed" in str(caught.value)

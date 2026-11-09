@@ -37,11 +37,11 @@ reason = "the snippet is the diagnosis this change exists to add; it is bounded 
 # instead would be worse -- a compressed body expands past a wire-counted cap
 # after the count, which is why mcp-gemini forces Accept-Encoding: identity.
 # Bounding both is the right answer and it belongs in the shared shape rather
-# than in this one repo: recorded as item I21 of the RT #1601 program.
+# than in this one repo: tracked as crunchtools/constitution#106.
 [[findings]]
 agent = "performance"
 category = "performance"
 file = "src/mcp_slack_crunchtools/client.py"
 evidence = "async for chunk in response.aiter_bytes():\n    if len(body) + len(chunk) > MAX_RESPONSE_SIZE:"
 status = "deferred"
-reason = "the spike is one wire chunk's decompression, not the body's; bounding wire bytes as well belongs in the shared shape across the fleet, recorded as item I21 of the RT #1601 program"
+reason = "the spike is one wire chunk's decompression, not the body's; bounding wire bytes as well belongs in the shared shape across the fleet, tracked in https://github.com/crunchtools/constitution/issues/106"
