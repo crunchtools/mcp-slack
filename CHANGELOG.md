@@ -8,6 +8,18 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-10
+
+### Fixed
+
+- **The container now installs the versions CI actually tested.** The builder
+  stage ran `pip install .`, which reads only pyproject.toml's floor-pins and
+  lets pip re-resolve everything else fresh at build time — so the shipped
+  image could silently drift from the committed, Dependabot-maintained
+  `uv.lock`. A new lock stage exports the locked set with `uv export
+  --frozen`, and both the dependency install and the project install now use
+  `--no-deps` so pip cannot re-resolve anything. (RT #1564)
+
 ## [0.5.0] - 2026-11-09
 
 ### Fixed
