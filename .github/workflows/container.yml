@@ -27,7 +27,7 @@ jobs:
       boot: mcp
       # Dummy settings: config loads at startup, no request reaches them.
       boot-env: |
-        SLACK_USER_TOKEN=xoxp-gate-dummy
+        SLACK_USER_TOKEN=gate-dummy
     secrets:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
