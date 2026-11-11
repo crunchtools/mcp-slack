@@ -21,32 +21,7 @@ jobs:
     permissions:
       contents: read
       issues: write
-    uses: crunchtools/constitution/.github/workflows/dependency-audit.yml@v1.31.0
-
-  container-scan:
-    name: Container Security Scan
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Build container image
-        run: |
-          docker build -f Containerfile -t mcp-slack:scan .
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: "mcp-slack:scan"
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH"
-
-      - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: "trivy-results.sarif"
+    uses: crunchtools/constitution/.github/workflows/dependency-audit.yml@v1.39.1
 
   codeql:
     name: CodeQL Analysis
