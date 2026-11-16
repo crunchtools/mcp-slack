@@ -8,6 +8,13 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+### Security
+
+- Bump dnspython 2.9.1 to 2.9.2 in `uv.lock` for CVE-2026-128089
+  (GHSA-vvf4-9x63-8xvv, CVSS 7.5): unbounded WKS service numbers in
+  `from_text()` could exhaust memory and CPU. It arrives transitively
+  through email-validator.
+
 ## [0.5.1] - 2026-11-10
 
 ### Fixed
