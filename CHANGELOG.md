@@ -8,6 +8,8 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-17
+
 ### Security
 
 - Bump dnspython 2.9.1 to 2.9.2 in `uv.lock` for CVE-2026-128089
