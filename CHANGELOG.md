@@ -8,6 +8,14 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+### Changed
+- The container release runs constitution v1.51.0's `container-release.yml`
+  (was v1.46.0) and grants it `issues: write`, so a failed weekly rebuild opens
+  an issue instead of only emailing whoever last touched the cron line. A `v*`
+  promote now also refuses an image whose `version` label names a different
+  release of this repo; each release PR moves this image's label to the new
+  version, so a release cut that way passes.
+
 ## [0.5.2] - 2026-11-17
 
 ### Security
