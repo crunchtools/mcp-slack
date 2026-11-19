@@ -9,6 +9,7 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 ## [Unreleased]
 
 ### Changed
+- Gatehouse triage receives the review job's result (`review_result`), so a PR whose review died before posting anything is held instead of passing.
 - Promote signs the image with the fleet cosign key (`sign: true`), because
   bootc hosts are moving to trust only signed `quay.io/crunchtools` images
   (crunchtools/rhel10-bootc-server#47). Needs the repo's `cosign-signing`
