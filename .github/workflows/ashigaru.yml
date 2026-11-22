@@ -2,7 +2,9 @@
 #
 # Drop this in at .github/workflows/ashigaru.yml. The organization supplies the
 # secrets (CLAUDE_CODE_OAUTH_TOKEN, ASHIGARU_APP_KEY,
-# OPENROUTER_API_KEY) and the switch (variable ASHIGARU_ENABLED = true).
+# OPENROUTER_API_KEY), the variable ASHIGARU_CLIENT_ID (the app's client ID,
+# used with ASHIGARU_APP_KEY to mint tokens) and the switch
+# (variable ASHIGARU_ENABLED = true).
 #
 # What happens:
 #   • a new issue is triaged: bug, documentation and performance issues are
@@ -15,12 +17,16 @@
 #     (`fixed in <sha>` or `not a bug: <reason>`) for up to five rounds, then
 #     labels the pull request needs-human and stops
 #   • GitHub merges when the required checks pass. No job here can merge.
+#   • when a release pull request Ashigaru opened merges, the release job tags
+#     the merge commit and publishes the GitHub Release (docs/release.md)
 #
 # To steer it by hand: add `ready-to-code` to have an issue fixed,
 # `ready-for-triage` to have it looked at again.
 #
-# Where the checks are. This file only routes events. The workflows it calls
-# do the checking, at the pinned release, before any agent runs:
+# Where the checks are. This file only subscribes to events and hands them to
+# router.yml, which picks the job; an event Ashigaru does not act on ends in a
+# one-step job that reads no secret. The workflows it calls do the checking
+# before any agent runs:
 #   • the switch: every called workflow stops at its first job unless the
 #     organization variable ASHIGARU_ENABLED is true
 #   • who may reach an agent: scripts/guard.py asks the API for the write
@@ -30,67 +36,49 @@
 #   • what the secrets can do: the job that runs the model gets a read-only
 #     token; the app key is used only by jobs that run no model
 #
-# Copy unchanged apart from the pins, which Dependabot keeps current.
+# Copy unchanged. The router is called at the major tag, which each release
+# moves, so a new job or a new gate arrives without touching this file. The
+# events below are a deliberate superset of what Ashigaru acts on today.
 
 name: Ashigaru
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [opened, labeled, reopened]
+  issue_comment:
+    types: [created]
   workflow_run:
     workflows: [Gatehouse]
     types: [completed]
+  pull_request_target:
+    types: [opened, synchronize, closed]
+  workflow_dispatch:
 
 permissions: {}
 
 # One run at a time per issue or per pull request branch; a second event waits.
+# The event name keeps a burst of events Ashigaru ignores (comments, pushes)
+# from replacing a run of another kind that is waiting its turn. Ignored
+# issues events (other labels, reopened) still share the issue's group.
 concurrency:
-  group: ashigaru-${{ github.event.issue.number || github.event.workflow_run.head_branch }}
+  group: ashigaru-${{ github.event_name }}-${{ github.event.issue.number || github.event.workflow_run.head_branch || github.event.pull_request.head.ref || github.run_id }}
   cancel-in-progress: false
 
 jobs:
-  triage:
-    name: Triage
-    if: >-
-      github.event_name == 'issues' &&
-      (github.event.action == 'opened' || github.event.label.name == 'ready-for-triage')
+  ashigaru:
+    name: Ashigaru
+    # The most any routed job needs; router.yml narrows it per job.
     permissions:
       contents: read
       issues: write
-    uses: crunchtools/ashigaru/.github/workflows/triage.yml@v2
-    secrets:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
-  code:
-    name: Code
-    needs: triage
-    # After a triage that said ready-to-code, or when a maintainer adds the label.
-    if: >-
-      always() && github.event_name == 'issues' &&
-      (needs.triage.outputs.auto_code == 'true' ||
-       (github.event.action == 'labeled' && github.event.label.name == 'ready-to-code'))
-    permissions:
-      contents: read
-      issues: read
-    uses: crunchtools/ashigaru/.github/workflows/code.yml@v2
+      pull-requests: read
+      checks: read
+      actions: read
+    uses: crunchtools/ashigaru/.github/workflows/router.yml@v5
+    # By name, not `inherit`: whoever can move v5 can read only these three,
+    # not every secret this repository holds. The router hands each workflow
+    # only the ones it declares.
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       ASHIGARU_APP_KEY: ${{ secrets.ASHIGARU_APP_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-
-  fix:
-    name: Fix
-    if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.event == 'pull_request_target' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      startsWith(github.event.workflow_run.head_branch, 'ashigaru/')
-    permissions:
-      contents: read
-      pull-requests: read
-      checks: read
-      actions: read
-    uses: crunchtools/ashigaru/.github/workflows/fix.yml@v2
-    secrets:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      ASHIGARU_APP_KEY: ${{ secrets.ASHIGARU_APP_KEY }}
