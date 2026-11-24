@@ -91,3 +91,5 @@ skip = ["semgrep"]
 [tool.sdlc.push.pytest]
 env = { SLACK_USER_TOKEN = "xoxp-test-token-for-ci" }
 
+[tool.sdlc]
+repo-kinds = ["mcp-server"]
