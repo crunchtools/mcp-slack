@@ -8,6 +8,8 @@ Entries prior to 2026-09-19 are back-filled from GitHub Release notes (RT #1484)
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-24
+
 ### Changed
 - The Ashigaru caller is re-copied from ashigaru v5: one job calling `router.yml@v5` in place of separate triage, code and fix jobs pinned at `@v2`, so release tagging and new jobs reach this repo without another re-copy. Supersedes Dependabot #96, which moved only `triage.yml` to `@v3`.
 - Gatehouse triage receives the review job's result (`review_result`), so a PR whose review died before posting anything is held instead of passing.
