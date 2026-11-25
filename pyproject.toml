@@ -92,6 +92,7 @@ skip = ["semgrep"]
 env = { SLACK_USER_TOKEN = "xoxp-test-token-for-ci" }
 
 [tool.sdlc]
+stacks = ["python", "container"]  # gate the Containerfile on every pull request
 # Written by crunchtools/sdlc's scripts/convert_repo.py: moved from the workflows.
 publish = "pypi"
 repo-kinds = ["mcp-server"]
